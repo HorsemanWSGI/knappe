@@ -1,6 +1,7 @@
 import wrapt
 import orjson
 import functools
+import inspect
 from knappe.response import Response, BaseResponse
 
 

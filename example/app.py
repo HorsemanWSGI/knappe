@@ -1,21 +1,45 @@
 import colander
 import deform
 import pathlib
+import inspect
 import typing as t
 import http_session_file
+from http import HTTPStatus
 from horseman.types import Environ
+from horseman.http import HTTPError
 from kavallerie.pipes.session import HTTPSession
 from kavallerie.testing import DictSource
 from kavallerie.app import RoutingApplication
 from kavallerie.events import Event
-from kavallerie.response import Response
+from kavallerie.response import Response, Headers
 from kavallerie.request import Request
 from kavallerie.pipes import authentication as auth
+from chameleon.zpt.loader import TemplateLoader as BaseLoader
 from chameleon.zpt.template import PageTemplateFile
 from horseman.meta import APIView
 from knappe.decorators import context, html, json, composed
 from knappe.ui import SlotExpr, slot, UI, Layout
 from knappe.response import Response
+
+
+class TemplateLoader(BaseLoader):
+
+    def __init__(self, path, ext=".pt", **kwargs):
+        path = pathlib.Path(path)
+        if not path.is_absolute():
+            callerframerecord = inspect.stack()[1]
+            frame = callerframerecord[0]
+            info = inspect.getframeinfo(frame)
+            path = pathlib.Path(info.filename).parent / path
+        super().__init__(str(path), ext, **kwargs)
+
+    def get(self, filename, default=None):
+        try:
+            return self.load(filename)
+        except ValueError:
+            return default
+
+    __getitem__ = BaseLoader.load
 
 
 PageTemplateFile.expression_types['slot'] = SlotExpr
@@ -40,6 +64,18 @@ session = HTTPSession(
 )
 
 
+def error_wrapper(handler, conf):
+    def error_handler(request):
+        try:
+            response = handler(request)
+        except HTTPError as exc:
+            if exc.status == 401:
+                return Response.redirect('/login')
+            raise
+        return response
+    return error_handler
+
+
 class RequestEvent(Event):
 
     def __init__(self, request):
@@ -61,6 +97,7 @@ class Example(RoutingApplication):
 app = Example()
 app.pipeline.add(session, order=10)
 app.pipeline.add(authentication, order=20)
+app.pipeline.add(error_wrapper, order=30)
 
 
 @slot.register
@@ -70,12 +107,7 @@ def header(request: Request, view: t.Any, context: t.Any, name: t.Literal['heade
 
 
 themeUI = UI(
-    templates={
-        'form': PageTemplateFile('form.pt'),
-        'index': PageTemplateFile('index.pt'),
-        'header': PageTemplateFile('header.pt'),
-        'composed': PageTemplateFile('composed.pt'),
-    },
+    templates=TemplateLoader(".", ext=".pt"),
     layout=Layout(PageTemplateFile('master.pt')),
 )
 
@@ -106,6 +138,11 @@ def get_document(request, docid):
             'data': 'some data'
         }
     raise LookupError('Could not find the document.')
+
+
+@app.routes.register('/forbidden')
+def never_see(request):
+    raise HTTPError(401)
 
 
 def someview(request):
