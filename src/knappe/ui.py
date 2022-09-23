@@ -4,7 +4,7 @@ from kavallerie.request import Request
 from multimethod import multimethod
 from chameleon.codegen import template
 from chameleon.astutil import Symbol
-from knappe.result import Result
+from knappe.result import Response
 
 
 Slot = t.Callable[[Request, str, t.Any], str]
@@ -23,7 +23,7 @@ def query_slot(econtext, name):
     context = econtext.get('context', object())
     try:
         result = slot(request, view, context, name)
-        if isinstance(result, Result):
+        if isinstance(result, Response):
             assert isinstance(result.body, str)
             return result.body
         if isinstance(result, str):
@@ -50,3 +50,23 @@ class SlotExpr:
             mode="eval"
         )
         return [ast.Assign(targets=[target], value=value)]
+
+
+
+class Layout:
+
+    def __init__(self, template):
+        self.template = template
+
+    def accepts(self, content_type: str):
+        return 'text/html' in content_type
+
+    def __call__(self, body, **namespace):
+        return self.template(content=body, layout=self, **namespace)
+
+
+class UI:
+
+    def __init__(self, templates, layout=None):
+        self.layout = layout
+        self.templates = templates

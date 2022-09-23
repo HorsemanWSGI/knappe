@@ -1,20 +1,26 @@
 import typing as t
 from kavallerie.request import Request
-from horseman.response import Response, BODYLESS
+from horseman.response import Response as BaseResponse, BODYLESS
 
 
-class Result(Response):
+class Response(BaseResponse):
 
     namespace: t.Mapping[str, t.Any]
     layout: t.Optional[t.Callable[[str], str]]
-    request: t.Optional[Request]
+    _request: t.Optional[Request]
 
-    def __init__(self, *args,
-                 layout=None, namespace=None, request=None, **kwargs):
+    def __init__(self, *args, layout=None, namespace=None, **kwargs):
         self.layout = layout
         self.namespace = namespace or {}
-        self.request = request
+        self._request = None
         super().__init__(*args, **kwargs)
+
+    def bind(self, request):
+        self._request = request
+
+    @property
+    def request(self):
+        return self._request
 
     @property
     def content_type(self):
@@ -27,7 +33,8 @@ class Result(Response):
     def render(self):
         if self.layout is not None \
            and self.layout.accepts(self.content_type):
-            return self.layout(self.body, **self.metadata)
+            return self.layout(
+                self.body, request=self.request, **self.namespace)
         return self.body
 
     def __iter__(self):

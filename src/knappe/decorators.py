@@ -1,43 +1,44 @@
 import wrapt
 import orjson
-from kavallerie.response import Response
-from knappe.result import Result
+from knappe.result import Response, BaseResponse
 
 
-def composed(composer):
-    @wrapt.decorator
-    def composed(wrapped, instance, args, params):
-        result = wrapped(*args, **params)
-        if isinstance(result, Result):
-            result.layout = composer
-        return result
-    return composed
+@wrapt.decorator
+def composed(wrapped, instance, args, params):
+    result = wrapped(*args, **params)
+    if isinstance(result, Response):
+        result.layout = None
+    return result
 
 
-def html(template: str, result_class=Result):
+def html(template_name: str, response_class=Response, default_template=None):
     @wrapt.decorator
     def renderer(wrapped, instance, args, params):
         result = wrapped(*args, **params)
-        if isinstance(result, Response):
+        if isinstance(result, BaseResponse):
             return result
         request = args[0]
-        templates = request.utilities['templates']
-        rendered = templates[template].render(**result)
-        layout = templates.get('layout')
-        return result_class(body=rendered, layout=layout, headers={
+        ui = request.utilities['ui']
+        template = ui.templates.get(template_name, default_template)
+        if template is None:
+            raise NotImplementedError('No template.')
+        rendered = template.render(**result)
+        response = response_class(body=rendered, layout=ui.layout, headers={
             'Content-Type': 'text/html; charset=utf-8'
         })
+        response.bind(request)
+        return response
     return renderer
 
 
-def json(result_class=Result):
+def json(response_class=Response):
     @wrapt.decorator
     def renderer(wrapped, instance, args, params):
         request = args[0]
         result = wrapped(request, **params)
         if isinstance(result, Response):
             return result
-        return result_class(body=orjson.dumps(result), headers={
+        result = response_class(body=orjson.dumps(result), headers={
             'Content-Type': 'application/json'
         })
     return renderer

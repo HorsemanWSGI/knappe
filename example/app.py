@@ -14,7 +14,8 @@ from kavallerie.pipes import authentication as auth
 from chameleon.zpt.template import PageTemplateFile
 from horseman.meta import APIView
 from knappe.decorators import context, html, json, composed
-from knappe.ui import SlotExpr, slot
+from knappe.ui import SlotExpr, slot, UI, Layout
+from knappe.result import Response
 
 
 PageTemplateFile.expression_types['slot'] = SlotExpr
@@ -68,18 +69,20 @@ def header(request: Request, view: t.Any, context: t.Any, name: t.Literal['heade
     return {'title': 'This is a header'}
 
 
-TEMPLATES = {
-    'master': PageTemplateFile('master.pt'),
-    'form': PageTemplateFile('form.pt'),
-    'index': PageTemplateFile('index.pt'),
-    'header': PageTemplateFile('header.pt'),
-    'composed': PageTemplateFile('composed.pt'),
-}
+themeUI = UI(
+    templates={
+        'form': PageTemplateFile('form.pt'),
+        'index': PageTemplateFile('index.pt'),
+        'header': PageTemplateFile('header.pt'),
+        'composed': PageTemplateFile('composed.pt'),
+    },
+    layout=Layout(PageTemplateFile('master.pt')),
+)
 
 
 @app.subscribers.subscribe(RequestCreatedEvent)
 def theme(event):
-    event.request.utilities['templates'] = TEMPLATES
+    event.request.utilities['ui'] = themeUI
 
 
 class LoginForm(colander.Schema):
@@ -103,6 +106,10 @@ def get_document(request, docid):
             'data': 'some data'
         }
     raise LookupError('Could not find the document.')
+
+
+def someview(request):
+    return Response(body='some stuff')
 
 
 @app.routes.register('/test')
@@ -130,11 +137,29 @@ class Index(APIView):
         return {}
 
 
+class SubComposed(APIView):
+
+    pages = {
+        'sub': someview,
+    }
+
+    @html('composed')
+    def GET(self, request):
+        name = request.route.params['name']
+        page = self.pages.get(name)
+        if page is None:
+            raise NotImplementedError()
+        return {
+            'rendered_page': composed(page)(request).render()
+        }
+
+
 @app.routes.register('/composed/{name:alpha}')
 class Composed(APIView):
 
     pages = {
         'index': Index(),
+        'sub': SubComposed(),
     }
 
     @html('composed')
@@ -142,10 +167,8 @@ class Composed(APIView):
         page = self.pages.get(name)
         if page is None:
             raise NotImplementedError()
-        if isinstance(page, APIView):
-            page = getattr(page, request.method)
         return {
-            'rendered_page': composed(self)(page)(request)
+            'rendered_page': composed(page)(request).render()
         }
 
 

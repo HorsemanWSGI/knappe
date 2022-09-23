@@ -18,7 +18,7 @@
         <tal:head tal:replace="structure slot: header" />
       </header>
       <div class="row">
-        <div class="col-md-12" metal:define-slot="content">body</div>
+        <div class="col-md-12" tal:content="structure content">body</div>
       </div>
     </div>
   </body>
