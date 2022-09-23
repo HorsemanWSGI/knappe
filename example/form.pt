@@ -1,0 +1,3 @@
+<div>
+  <div tal:replace="structure rendered_form"></div>
+</div>

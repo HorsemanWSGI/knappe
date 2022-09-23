@@ -1,5 +1,6 @@
 import wrapt
 import orjson
+from kavallerie.response import Response
 from knappe.result import Result
 
 
@@ -34,7 +35,7 @@ def json(result_class=Result):
     def renderer(wrapped, instance, args, params):
         request = args[0]
         result = wrapped(request, **params)
-        if isinstance(result, (Response, Result)):
+        if isinstance(result, Response):
             return result
         return result_class(body=orjson.dumps(result), headers={
             'Content-Type': 'application/json'

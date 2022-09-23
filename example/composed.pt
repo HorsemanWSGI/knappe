@@ -1,0 +1,2 @@
+<h2>Composed page</h2>
+<div tal:content="structure rendered_page" />

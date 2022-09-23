@@ -1,5 +1,6 @@
 import typing as t
-from horseman.response import Response
+from kavallerie.request import Request
+from kavallerie.response import Response
 
 
 class Result(Response):
