@@ -1,6 +1,7 @@
 import wrapt
 import orjson
-from knappe.result import Response, BaseResponse
+import functools
+from knappe.response import Response, BaseResponse
 
 
 @wrapt.decorator
@@ -31,17 +32,23 @@ def html(template_name: str, response_class=Response, default_template=None):
     return renderer
 
 
-def json(response_class=Response):
+def json(wrapped=None, *, response_class=Response):
+    if wrapped is None:
+        return functools.partial(
+            json, response_class=Response)
+
     @wrapt.decorator
     def renderer(wrapped, instance, args, params):
         request = args[0]
         result = wrapped(request, **params)
         if isinstance(result, Response):
             return result
-        result = response_class(body=orjson.dumps(result), headers={
+        response = response_class(body=orjson.dumps(result), headers={
             'Content-Type': 'application/json'
         })
-    return renderer
+        response.bind(request)
+        return response
+    return renderer(wrapped)
 
 
 def context(factory):

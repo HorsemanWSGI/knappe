@@ -4,7 +4,7 @@ from kavallerie.request import Request
 from multimethod import multimethod
 from chameleon.codegen import template
 from chameleon.astutil import Symbol
-from knappe.result import Response
+from knappe.response import Response
 
 
 Slot = t.Callable[[Request, str, t.Any], str]

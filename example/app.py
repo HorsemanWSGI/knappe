@@ -15,7 +15,7 @@ from chameleon.zpt.template import PageTemplateFile
 from horseman.meta import APIView
 from knappe.decorators import context, html, json, composed
 from knappe.ui import SlotExpr, slot, UI, Layout
-from knappe.result import Response
+from knappe.response import Response
 
 
 PageTemplateFile.expression_types['slot'] = SlotExpr
@@ -120,7 +120,7 @@ class Test(APIView):
         return {'test': 1}
 
 
-@app.routes.register('/doc/{docid:digit}')
+@app.routes.register('/doc/{docid}')
 class DocumentView(APIView):
 
     @json
