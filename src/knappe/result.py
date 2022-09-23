@@ -1,6 +1,6 @@
 import typing as t
 from kavallerie.request import Request
-from kavallerie.response import Response
+from horseman.response import Response, BODYLESS
 
 
 class Result(Response):
