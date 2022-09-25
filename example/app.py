@@ -4,13 +4,15 @@ import pathlib
 import inspect
 import typing as t
 import http_session_file
+from dataclasses import dataclass, field
 from http import HTTPStatus
 from horseman.types import Environ
 from horseman.http import HTTPError
 from kavallerie.pipes.session import HTTPSession
 from kavallerie.testing import DictSource
-from kavallerie.app import RoutingApplication
+from kavallerie.app import Application
 from kavallerie.events import Event
+from kavallerie.routes import Routes
 from kavallerie.response import Response, Headers
 from kavallerie.request import Request
 from kavallerie.pipes import authentication as auth
@@ -64,16 +66,29 @@ session = HTTPSession(
 )
 
 
-def error_wrapper(handler, conf):
-    def error_handler(request):
-        try:
-            response = handler(request)
-        except HTTPError as exc:
-            if exc.status == 401:
-                return Response.redirect('/login')
-            raise
-        return response
-    return error_handler
+def unauthorized(exc, request):
+    print('I am here')
+    if request.user is None:
+        return Response.redirect('/login')
+    return Response(403)
+
+
+class HTTPErrorCatcher(
+        t.Dict[int, t.Callable[[Exception, Request], t.Optional[Response]]]):
+
+    def __call__(self, handler, conf):
+        def error_handler(request):
+            try:
+                response = handler(request)
+            except HTTPError as exc:
+                catcher = self.get(exc.status)
+                if catcher is None:
+                    raise exc
+                response = catcher(exc, request)
+                if response is None:
+                    raise exc
+            return response
+        return error_handler
 
 
 class RequestEvent(Event):
@@ -86,18 +101,28 @@ class RequestCreatedEvent(RequestEvent):
     pass
 
 
-class Example(RoutingApplication):
+@dataclass
+class Example(Application):
+    routes: Routes = field(default_factory=Routes)
 
     def resolve(self, path: str, environ: Environ) -> Response:
         request = self.request_factory(path or '/', self, environ)
         self.subscribers.notify(RequestCreatedEvent(request))
         return self.pipeline.wrap(self.endpoint, self.config)(request)
 
+    def endpoint(self, request) -> Response:
+        route = self.routes.match_method(request.path, request.method)
+        if route is None:
+            raise HTTPError(404)
+        request.route = route
+        return route.endpoint(request, **route.params)
+
+
 
 app = Example()
+app.pipeline.add(HTTPErrorCatcher({401: unauthorized}))
 app.pipeline.add(session, order=10)
 app.pipeline.add(authentication, order=20)
-app.pipeline.add(error_wrapper, order=30)
 
 
 @slot.register
@@ -140,7 +165,7 @@ def get_document(request, docid):
     raise LookupError('Could not find the document.')
 
 
-@app.routes.register('/forbidden')
+@app.routes.register('/private')
 def never_see(request):
     raise HTTPError(401)
 
