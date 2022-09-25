@@ -162,7 +162,7 @@ class DocumentView(APIView):
 
     @json
     @context(get_document)
-    def GET(self, document, request, **params):
+    def GET(self, request, document, **params):
         return document
 
 

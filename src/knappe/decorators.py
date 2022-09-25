@@ -2,6 +2,7 @@ import wrapt
 import orjson
 import functools
 import inspect
+from kavallerie.errors import HTTPError
 from knappe.response import Response, BaseResponse
 
 
@@ -64,5 +65,5 @@ def context(factory):
             context = factory(*args, **params)
         except LookupError:
             raise HTTPError(400)
-        return wrapped(context, *args, **params)
+        return wrapped(*args, context, **params)
     return context_wrapper
