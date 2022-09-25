@@ -2,7 +2,7 @@ colander
 deform
 http_session_file
 horseman
-kavallerie
+-e git+ssh://git@github.com/HorsemanWSGI/kavallerie.git@no_httperror_intercept#egg=kavallerie
 chameleon
 bjoern
 -e ..

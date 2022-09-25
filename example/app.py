@@ -4,24 +4,21 @@ import pathlib
 import inspect
 import typing as t
 import http_session_file
-from dataclasses import dataclass, field
-from http import HTTPStatus
-from horseman.types import Environ
-from horseman.http import HTTPError
-from kavallerie.pipes.session import HTTPSession
-from kavallerie.testing import DictSource
-from kavallerie.app import Application
-from kavallerie.events import Event
-from kavallerie.routes import Routes
-from kavallerie.response import Response, Headers
-from kavallerie.request import Request
-from kavallerie.pipes import authentication as auth
 from chameleon.zpt.loader import TemplateLoader as BaseLoader
 from chameleon.zpt.template import PageTemplateFile
+from horseman.http import HTTPError
 from horseman.meta import APIView
+from horseman.types import Environ
+from kavallerie.app import RoutingApplication
+from kavallerie.events import Event
+from kavallerie.pipes import authentication as auth
+from kavallerie.pipes.session import HTTPSession
+from kavallerie.pipes.errors import HTTPErrorCatchers
+from kavallerie.request import Request
+from kavallerie.testing import DictSource
 from knappe.decorators import context, html, json, composed
-from knappe.ui import SlotExpr, slot, UI, Layout
 from knappe.response import Response
+from knappe.ui import SlotExpr, slot, UI, Layout
 
 
 class TemplateLoader(BaseLoader):
@@ -66,29 +63,15 @@ session = HTTPSession(
 )
 
 
-def unauthorized(exc, request):
-    print('I am here')
+def unauthorized(request, exc):
     if request.user is None:
         return Response.redirect('/login')
     return Response(403)
 
 
-class HTTPErrorCatcher(
-        t.Dict[int, t.Callable[[Exception, Request], t.Optional[Response]]]):
-
-    def __call__(self, handler, conf):
-        def error_handler(request):
-            try:
-                response = handler(request)
-            except HTTPError as exc:
-                catcher = self.get(exc.status)
-                if catcher is None:
-                    raise exc
-                response = catcher(exc, request)
-                if response is None:
-                    raise exc
-            return response
-        return error_handler
+@html('notfound', code=404)
+def notfound(request, exc):
+    return {'body': "I was not found !!"}
 
 
 class RequestEvent(Event):
@@ -101,26 +84,18 @@ class RequestCreatedEvent(RequestEvent):
     pass
 
 
-@dataclass
-class Example(Application):
-    routes: Routes = field(default_factory=Routes)
 
-    def resolve(self, path: str, environ: Environ) -> Response:
-        request = self.request_factory(path or '/', self, environ)
-        self.subscribers.notify(RequestCreatedEvent(request))
-        return self.pipeline.wrap(self.endpoint, self.config)(request)
-
-    def endpoint(self, request) -> Response:
-        route = self.routes.match_method(request.path, request.method)
-        if route is None:
-            raise HTTPError(404)
-        request.route = route
-        return route.endpoint(request, **route.params)
+def request_factory(path, app, environ):
+    request = Request(path, app, environ)
+    app.subscribers.notify(RequestCreatedEvent(request))
+    return request
 
 
-
-app = Example()
-app.pipeline.add(HTTPErrorCatcher({401: unauthorized}))
+app = RoutingApplication(request_factory=request_factory)
+app.pipeline.add(HTTPErrorCatchers({
+    401: unauthorized,
+    404: notfound
+}))
 app.pipeline.add(session, order=10)
 app.pipeline.add(authentication, order=20)
 

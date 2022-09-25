@@ -13,7 +13,11 @@ def composed(wrapped, instance, args, params):
     return result
 
 
-def html(template_name: str, response_class=Response, default_template=None):
+def html(
+        template_name: str,
+        response_class=Response,
+        default_template=None,
+        code=200):
     @wrapt.decorator
     def renderer(wrapped, instance, args, params):
         result = wrapped(*args, **params)
@@ -25,7 +29,8 @@ def html(template_name: str, response_class=Response, default_template=None):
         if template is None:
             raise NotImplementedError('No template.')
         rendered = template.render(**result)
-        response = response_class(body=rendered, layout=ui.layout, headers={
+        response = response_class(
+            code, body=rendered, layout=ui.layout, headers={
             'Content-Type': 'text/html; charset=utf-8'
         })
         response.bind(request)
