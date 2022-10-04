@@ -5,8 +5,7 @@ setup(
     name='knappe',
     install_requires = [
         'chameleon',
-        'horseman >= 0.6',
-        'kavallerie >= 0.3',
+        'horseman',
         'multimethod',
         'orjson',
         'wrapt',

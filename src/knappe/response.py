@@ -1,5 +1,5 @@
 import typing as t
-from kavallerie.request import Request
+from knappe.request import Request
 from horseman.response import Response as BaseResponse, BODYLESS
 
 

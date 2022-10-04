@@ -1,10 +1,10 @@
 import ast
 import typing as t
-from kavallerie.request import Request
-from multimethod import multimethod
-from chameleon.codegen import template
 from chameleon.astutil import Symbol
+from chameleon.codegen import template
+from knappe.request import Request
 from knappe.response import Response
+from multimethod import multimethod
 
 
 Slot = t.Callable[[Request, str, t.Any], str]
