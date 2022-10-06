@@ -5,6 +5,7 @@ import typing as t
 from inspect import isclass, signature
 from prejudice.types import Predicate, Predicates
 from prejudice.utils import resolve_constraints
+from prejudice.errors import ConstraintsErrors
 
 
 class Event(abc.ABC):
@@ -25,7 +26,7 @@ class Subscription(t.NamedTuple):
     subscriber: Subscriber
     predicates: t.Optional[Predicates] = None
 
-    def check(self, event: Event) -> bool:
+    def check(self, event: Event) -> t.Optional[ConstraintsErrors]:
         if self.predicates:
             return resolve_constraints(self.predicates, event)
         return None
@@ -75,11 +76,9 @@ class Subscribers(TypeMapping[Event, Subscription]):
                       *predicates: Predicate):
         if self.strict:
             self.check_subscriber(event_type, subscriber)
-        if not predicates:
-            predicates = None
         subscription = Subscription(
             subscriber=subscriber,
-            predicates=predicates
+            predicates=predicates or None
         )
         self.add(event_type, subscription)
 
@@ -102,7 +101,7 @@ class Subscribers(TypeMapping[Event, Subscription]):
     def check_subscriber(event_type: t.Type[Event], sub: Subscriber):
         if not (isclass(event_type) and issubclass(event_type, Event)):
             raise KeyError('Subscriber must be a subclass of Event')
-        if not isinstance(sub, t.Callable):
+        if not callable(sub):
             raise ValueError(f'Subscriber must be a {Subscriber}')
         sig = signature(sub)
         if len(sig.parameters) != 1:
