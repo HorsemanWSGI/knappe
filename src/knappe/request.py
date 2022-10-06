@@ -12,7 +12,7 @@ class WSGIRequest(Request):
 
     environ: WSGIEnvironWrapper
     app: t.Optional[WSGICallable]
-    params: t.MutableMapping[str, t.Any]
+    params: t.Optional[t.Mapping[str, t.Any]]
 
     def __init__(self,
                  environ: Environ,
@@ -29,7 +29,6 @@ class RoutingRequest(WSGIRequest):
     __slots__ = ('app', 'environ', 'endpoint', 'context')
 
     endpoint: t.Optional[MatchedEndpoint]
-    params: t.Optional[t.Mapping[str, t.Any]]  # Optional and immutable
 
     def __init__(self,
                  environ: Environ,
@@ -42,6 +41,7 @@ class RoutingRequest(WSGIRequest):
         self.endpoint = endpoint
 
     @property
-    def params(self) -> t.Optional[t.Mapping[str, t.Any]]:
+    def params(self):
         if self.endpoint:
             return self.endpoint.params
+        return None

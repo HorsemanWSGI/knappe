@@ -3,14 +3,14 @@ from functools import reduce
 from knappe.types import RqT, RsT, Config, Handler, Middleware
 
 
-class Pipeline(t.Generic[RqT, RsT], t.Collection[Middleware[RqT, RsT]]):
+class Pipeline(t.Generic[RqT, RsT], t.Collection[Middleware]):
 
     config: t.Optional[Config] = None
-    _middlewares: t.Collection[Middleware[RqT, RsT]]
-    _cached: t.Mapping[Handler[RqT, RsT], Handler[RqT, RsT]]
+    _middlewares: t.Sequence[Middleware]
+    _cached: t.Dict[Handler[RqT, RsT], Handler[RqT, RsT]]
 
     def __init__(self,
-                 middlewares: t.Collection[t.Tuple[str, Middleware]],
+                 middlewares: t.Iterable[Middleware],
                  config: t.Optional[Config] = None):
         self.config = config
         self._middlewares = tuple(middlewares)  # Freeze.
@@ -19,7 +19,7 @@ class Pipeline(t.Generic[RqT, RsT], t.Collection[Middleware[RqT, RsT]]):
     def __iter__(self):
         return iter(self._middlewares)
 
-    def __contains__(self, item: Middleware[RqT, RsT]):
+    def __contains__(self, item):
         return item in self._middlewares
 
     def __len__(self):

@@ -2,7 +2,7 @@ from horseman.response import Response
 from knappe.pipeline import Pipeline
 from knappe.middlewares.session import HTTPSession
 from knappe.request import WSGIRequest, RoutingRequest
-from knappe.response import BaseResponse
+from knappe.response import Response
 from knappe.routing import Router
 from horseman.mapping import RootNode
 from webtest import TestApp as WSGIApp

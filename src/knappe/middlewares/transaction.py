@@ -3,17 +3,17 @@ from transaction import TransactionManager
 from prejudice import resolve_constraints
 from prejudice.errors import ConstraintError
 from prejudice.types import Predicates
-from knappe.request import Request
-from knappe.response import BaseResponse
+from knappe.request import WSGIRequest
+from knappe.response import Response
 from knappe.types import Handler, Middleware
 
 
 def bad_response(request, response):
-    if isinstance(response, BaseResponse) and response.status >= 400:
+    if isinstance(response, Response) and response.status >= 400:
         raise ConstraintError('Response is doomed.')
 
 
-class Transaction(Middleware):
+class Transaction:
 
     class Configuration(t.NamedTuple):
         veto: Predicates = (bad_response,)

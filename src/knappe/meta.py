@@ -21,8 +21,8 @@ class HTTPEndpointMeta(EndpointType):
 
     def as_endpoint(self,
                     methods: t.Optional[HTTPMethods] = None,
-                    metadata: t.Optional[t.Mapping[str, t.Any]] = None
-                    ) -> t.Mapping[HTTPMethod, EndpointDefinition]:
+                    metadata: t.Optional[t.Mapping[str, t.Any]] = None,
+                    **kwargs) -> t.Mapping[HTTPMethod, EndpointDefinition]:
 
         if methods is None:
             methods = ('GET',)
@@ -37,8 +37,9 @@ class HTTPEndpointMeta(EndpointType):
 class HTTPMethodEndpointMeta(HTTPEndpointMeta):
 
     def as_endpoint(self,
-                    methods: HTTPMethods = None,
-                    metadata: t.Optional[t.Mapping[str, t.Any]] = None):
+                    methods: t.Optional[HTTPMethods] = None,
+                    metadata: t.Optional[t.Mapping[str, t.Any]] = None,
+                    **kwargs):
 
         extract = methods is not None and methods or METHODS
         inst = self()

@@ -1,5 +1,6 @@
 import typing as t
 from abc import ABC
+from collections.abc import Callable
 
 
 class Request(ABC):
@@ -9,5 +10,5 @@ class Request(ABC):
 RqT = t.TypeVar('RqT', bound=Request, covariant=True)
 RsT = t.TypeVar('RsT', covariant=True)
 Config = t.Mapping[str, t.Any]
-Handler = t.Callable[[RqT], RsT]
-Middleware = t.Callable[[str, Handler, t.Optional[Config]], Handler]
+Handler = Callable[[RqT], RsT]
+Middleware = Callable[[Handler, t.Optional[Config]], Handler]

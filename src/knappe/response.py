@@ -1,13 +1,13 @@
 import typing as t
-from knappe.request import Request
-from horseman.response import Response as BaseResponse, BODYLESS
+from knappe.request import WSGIRequest
+from horseman.response import Response, BODYLESS
 
 
-class Response(BaseResponse):
+class DecoratedResponse(Response):
 
     namespace: t.Mapping[str, t.Any]
     layout: t.Optional[t.Callable[[str], str]]
-    _request: t.Optional[Request]
+    _request: t.Optional[WSGIRequest]
 
     def __init__(self, *args, layout=None, namespace=None, **kwargs):
         self.layout = layout
@@ -54,3 +54,6 @@ class Response(BaseResponse):
                 raise TypeError(
                     f'Body of type {type(self.body)!r} is not supported.'
                 )
+
+
+__all__ = ('Response', 'DecoratedResponse')

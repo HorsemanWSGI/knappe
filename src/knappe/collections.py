@@ -2,12 +2,7 @@ import typing as t
 from collections.abc import Hashable
 
 
-START = object()
-END = object()
-DIRTY = object()
-
-
-C = t.TypeVar('C', bound=Hashable, covariant=True)
+C = t.TypeVar('C', bound=Hashable)
 T = t.TypeVar('T', covariant=True)
 
 
@@ -15,7 +10,7 @@ class TypeMapping(t.Generic[T, C], t.Dict[t.Type[T], t.List[C]]):
 
     __slots__ = ()
 
-    def add(self, cls: t.Type[T], component: C) -> t.NoReturn:
+    def add(self, cls: t.Type[T], component: C):
         components = self.setdefault(cls, [])
         components.append(component)
 
@@ -29,13 +24,22 @@ class TypeMapping(t.Generic[T, C], t.Dict[t.Type[T], t.List[C]]):
                 yield from self[parent]
 
 
+Marker = t.NewType('Marker', str)
+Node = t.Union[C, Marker]
+START = Marker('start')
+END = Marker('end')
+
+
 class ComponentsTopology(t.Generic[C], t.Collection[C]):
+
+    _graph: t.MutableMapping[Node, t.Set[Node]]
+    _sorted: t.Optional[t.Sequence[C]]
 
     def __init__(self):
         self._graph = {START: set(), END: set()}
-        self._sorted = DIRTY
+        self._sorted = None
 
-    def _edge(self, frm: str, to: str):
+    def _edge(self, frm: Node, to: Node):
         if frm is END:
             raise ValueError('')
         if to is START:
@@ -43,22 +47,24 @@ class ComponentsTopology(t.Generic[C], t.Collection[C]):
 
         vectors = self._graph.setdefault(frm, set())
         vectors.add(to)
-        self._order = DIRTY
 
-    def add(self, component: C, before=END, after=START):
+    def add(self,
+            component: C,
+            before: t.Union[C, Marker] = END,
+            after: t.Union[C, Marker] = START):
         self._edge(after, component)
         self._edge(component, before)
-        self._sorted = DIRTY
+        self._sorted = None
 
-    def __contains__(self, component: C) -> bool:
-        return component in self._graph
+    def __contains__(self, component) -> bool:
+        return component in self.sorted
 
     def __len__(self) -> int:
         return len(self.sorted)
 
     @staticmethod
-    def sort(graph: t.Mapping[C, t.Set[C]], node: C) -> t.Deque[C]:
-        result = t.Deque()
+    def sort(graph: t.Mapping[Node, t.Set[Node]], node: Node) -> t.Deque[C]:
+        result: t.Deque[C] = t.Deque()
         seen = set()
 
         def visiter(node):
@@ -75,7 +81,7 @@ class ComponentsTopology(t.Generic[C], t.Collection[C]):
 
     @property
     def sorted(self) -> t.Sequence[C]:
-        if self._sorted is DIRTY:
+        if self._sorted is None:
             self._sorted = tuple(
                 component
                 for component in self.sort(self._graph, START)
@@ -83,8 +89,5 @@ class ComponentsTopology(t.Generic[C], t.Collection[C]):
             )
         return self._sorted
 
-    def __iter__(self) -> t.Iterable[C]:
+    def __iter__(self) -> t.Iterator[C]:
         return iter(self.sorted)
-
-    def __reversed__(self) -> t.Iterable[C]:
-        return reversed(self.sorted)

@@ -2,8 +2,8 @@ import typing as t
 import logging
 from http_session.session import Session
 from knappe.types import Handler, Config
-from knappe.request import Request
-from knappe.response import BaseResponse
+from knappe.request import WSGIRequest
+from knappe.response import Response
 from knappe.types import Handler, Middleware
 
 
@@ -27,7 +27,7 @@ class SessionMessages:
                 yield Message(**self.session[self.key].pop(0))
                 self.session.save()
 
-    def add(self, body: str, type: str = "info") -> t.NoReturn:
+    def add(self, body: str, type: str = "info"):
         if self.key in self.session:
             messages = self.session[self.key]
         else:
@@ -36,15 +36,18 @@ class SessionMessages:
         self.session.save()
 
 
-def flash(handler: Handler[Request, Response],
-          conf: t.Optional[Config] = None) -> Handler[Request, Response]:
-    def request_flasher(request: Request) -> BaseResponse:
-        if (session := request.get('http_session')) is not None:
-            request['flash'] = SessionMessages(session)
+def flash(handler: Handler[WSGIRequest, Response],
+          conf: t.Optional[Config] = None
+          ) -> Handler[WSGIRequest, Response]:
+
+    def request_flasher(request: WSGIRequest) -> Response:
+        if (session := request.context.get('http_session')) is not None:
+            request.context['flash'] = SessionMessages(session)
         else:
             logging.warning(
                 'FlashMessages can only be used if a session'
                 'is already present'
             )
         return handler(request)
+
     return request_flasher

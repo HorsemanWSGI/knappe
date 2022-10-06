@@ -2,12 +2,12 @@ import itsdangerous
 import typing as t
 from http_session.meta import Store
 from http_session.cookie import SameSite, HashAlgorithm, SignedCookieManager
-from knappe.request import Request
-from knappe.response import BaseResponse
-from knappe.types import Handler, Middleware
+from knappe.request import WSGIRequest
+from knappe.response import Response
+from knappe.types import Handler
 
 
-class HTTPSession(Middleware[Request, BaseResponse]):
+class HTTPSession:
 
     manager: SignedCookieManager
 
@@ -35,10 +35,11 @@ class HTTPSession(Middleware[Request, BaseResponse]):
         )
 
     def __call__(self,
-                 handler: Handler[Request, BaseResponse],
-                 globalconf: t.Optional[t.Mapping] = None) -> Handler:
+                 handler: Handler[WSGIRequest, Response],
+                 globalconf: t.Optional[t.Mapping] = None
+                 ) -> Handler[WSGIRequest, Response]:
 
-        def http_session_middleware(request: Request) -> BaseResponse:
+        def http_session_middleware(request: WSGIRequest) -> Response:
             session = request.context.get('http_session')
             if session is None:
                 new = True

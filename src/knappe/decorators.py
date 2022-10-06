@@ -2,27 +2,28 @@ import sys
 import wrapt
 import orjson
 import functools
+import typing as t
 from horseman.exceptions import HTTPError
-from knappe.response import Response, BaseResponse
+from knappe.response import Response, DecoratedResponse
 
 
 @wrapt.decorator
 def composed(wrapped, instance, args, kwargs):
     result = wrapped(*args, **kwargs)
-    if isinstance(result, Response):
+    if isinstance(result, DecoratedResponse):
         result.layout = None
     return result
 
 
 def html(
         template_name: str,
-        response_class=Response,
+        response_class: t.Type[DecoratedResponse] = DecoratedResponse,
         default_template=None,
         code=200):
     @wrapt.decorator
     def renderer(wrapped, instance, args, kwargs):
         result = wrapped(*args, **kwargs)
-        if isinstance(result, BaseResponse):
+        if isinstance(result, Response):
             return result
         request = args[0]
         ui = request.get('ui')
@@ -45,7 +46,10 @@ def html(
     return renderer
 
 
-def json(wrapped=None, *, response_class=Response):
+def json(
+        wrapped=None,
+        *,
+        response_class: t.Type[DecoratedResponse] = DecoratedResponse):
     if wrapped is None:
         return functools.partial(
             json, response_class=Response)
@@ -56,9 +60,10 @@ def json(wrapped=None, *, response_class=Response):
         result = wrapped(request, **kwargs)
         if isinstance(result, Response):
             return result
-        response = response_class(body=orjson.dumps(result), headers={
-            'Content-Type': 'application/json'
-        })
+        response = response_class(
+            body=orjson.dumps(result),
+            headers={'Content-Type': 'application/json'}
+        )
         response.bind(request)
         return response
     return renderer(wrapped)
