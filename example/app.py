@@ -34,11 +34,10 @@ class Application(RootNode):
 
     def resolve(self, path_info, environ):
         environ = WSGIEnvironWrapper(environ)
-        endpoint = self.router.match_method(
-            path_info, environ.get('REQUEST_METHOD', 'GET').upper())
-        request = Request(environ, app=self, endpoint=endpoint)
         import pdb
         pdb.set_trace()
+        endpoint = self.router.match_method(path_info, environ.method)
+        request = Request(environ, app=self, endpoint=endpoint)
         return endpoint.handler(request)
 
 
@@ -60,7 +59,7 @@ class DocumentView(metaclass=HTTPMethodEndpointMeta):
 
     @json
     @context(get_document)
-    def GET(self, request: Request, document) -> dict:
+    def GET(self, request: Request, document: dict) -> dict:
         return document
 
 

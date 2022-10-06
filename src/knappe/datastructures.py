@@ -1,5 +1,5 @@
 import typing as t
-from knappe.types import HTTPMethod, Handler
+from knappe.types import Handler
 
 
 class MatchedEndpoint(t.NamedTuple):

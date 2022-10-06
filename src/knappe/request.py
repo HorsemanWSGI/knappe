@@ -2,42 +2,43 @@ import typing as t
 from abc import ABC
 from horseman.environ import WSGIEnvironWrapper
 from horseman.types import Environ, WSGICallable
+from knappe.types import Request
 from knappe.datastructures import MatchedEndpoint
 
 
-class Request(ABC):
-    pass
+class WSGIRequest(Request):
 
-
-class WSGIRequest(Request, t.Dict[str, t.Any]):
-
-    __slots__ = ('app', 'environ', 'params')
+    __slots__ = ('app', 'environ', 'params', 'context')
 
     environ: WSGIEnvironWrapper
     app: t.Optional[WSGICallable]
-    params: t.Optional[t.Mapping[str, t.Any]]
+    params: t.MutableMapping[str, t.Any]
 
     def __init__(self,
                  environ: Environ,
                  app: t.Optional[WSGICallable] = None,
-                 params: t.Optional[t.Mapping[str, t.Any]] = None):
+                 context: t.MutableMapping[str, t.Any] = None):
         self.app = app
         self.environ = WSGIEnvironWrapper(environ)
-        if params is None:
-            params = {}
-        self.params = params
+        self.context = context if context is not None else {}
+        self.params = {}
 
 
 class RoutingRequest(WSGIRequest):
 
-    __slots__ = ('app', 'environ', 'endpoint')
+    __slots__ = ('app', 'environ', 'endpoint', 'context')
 
     endpoint: t.Optional[MatchedEndpoint]
+    params: t.Optional[t.Mapping[str, t.Any]]  # Optional and immutable
 
     def __init__(self,
                  environ: Environ,
                  app: t.Optional[WSGICallable] = None,
-                 endpoint: t.Optional[MatchedEndpoint] = None):
+                 endpoint: t.Optional[MatchedEndpoint] = None,
+                 context: t.MutableMapping[str, t.Any] = None):
+        self.app = app
+        self.environ = WSGIEnvironWrapper(environ)
+        self.context = context if context is not None else {}
         self.endpoint = endpoint
 
     @property

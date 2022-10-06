@@ -1,9 +1,13 @@
 import typing as t
-from horseman.types import HTTPMethod
+from abc import ABC
 
 
+class Request(ABC):
+    context: t.MutableMapping[str, t.Any]
+
+
+RqT = t.TypeVar('RqT', bound=Request, covariant=True)
+RsT = t.TypeVar('RsT', covariant=True)
 Config = t.Mapping[str, t.Any]
-HTTPMethods = t.Iterable[HTTPMethod]
-METHODS = frozenset(t.get_args(HTTPMethod))
-Handler = t.Callable[..., t.Any]
+Handler = t.Callable[[RqT], RsT]
 Middleware = t.Callable[[str, Handler, t.Optional[Config]], Handler]

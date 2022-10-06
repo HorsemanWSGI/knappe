@@ -2,8 +2,6 @@ import sys
 import wrapt
 import orjson
 import functools
-import inspect
-import typing as t
 from horseman.exceptions import HTTPError
 from knappe.response import Response, BaseResponse
 
@@ -39,8 +37,9 @@ def html(
         rendered = template.render(**result)
         response = response_class(
             code, body=rendered, layout=layout, headers={
-            'Content-Type': 'text/html; charset=utf-8'
-        })
+                'Content-Type': 'text/html; charset=utf-8'
+            }
+        )
         response.bind(request)
         return response
     return renderer
@@ -79,8 +78,10 @@ def context(factory):
 def trigger(button):
     buttons = sys._getframe(1).f_locals.setdefault('_buttons', {})
     buttons[(button.name, button.value)] = button
+
     def trigger_wrapper(func):
         triggers = sys._getframe(1).f_locals.setdefault('_triggers', {})
         triggers[(button.name, button.value)] = func
         return func
+
     return trigger_wrapper

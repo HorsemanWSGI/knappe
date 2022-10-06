@@ -1,10 +1,11 @@
 import inspect
 import typing as t
 from abc import ABCMeta, abstractmethod
-from horseman.exceptions import HTTPError
-from horseman.types import HTTPMethod, WSGICallable
-from knappe.types import HTTPMethods, METHODS
+from horseman.types import HTTPMethod, HTTPMethods
 from knappe.datastructures import EndpointDefinition
+
+
+METHODS = frozenset(t.get_args(HTTPMethod))
 
 
 class EndpointType(ABCMeta):

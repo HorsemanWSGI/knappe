@@ -1,23 +1,26 @@
-import inspect
 import typing as t
 from http import HTTPStatus
 from frozendict import frozendict
 from autoroutes import Routes
 from horseman.exceptions import HTTPError
-from horseman.types import WSGICallable, HTTPMethod
-from knappe.request import Request
+from horseman.types import HTTPMethod, HTTPMethods
 from knappe.meta import HTTPEndpointMeta
-from knappe.types import HTTPMethods, Handler
 from knappe.datastructures import MatchedEndpoint, EndpointDefinition
 
 
 class Router(Routes):
+
+    def add(self,
+            path: str,
+            route_definition: t.Mapping[HTTPMethod, EndpointDefinition]):
+        return super().add(path, **route_definition)
 
     def register(self,
                  path: str,
                  methods: t.Optional[HTTPMethods] = None,
                  **metadata):
         metadata = frozendict(metadata)
+
         def routing(routable: t.Callable):
             if isinstance(routable, HTTPEndpointMeta):
                 route_definition = routable.as_endpoint(
@@ -32,9 +35,12 @@ class Router(Routes):
                     ) for verb in (methods or ('GET',))
                 }
             else:
-                raise NotImplemented
-            self.add(path, **route_definition)
+                raise NotImplementedError(
+                    f"Unknown type of routable: {routable!r}"
+                )
+            self.add(path, route_definition)
             return routable
+
         return routing
 
     def match_method(self,

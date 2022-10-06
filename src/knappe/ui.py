@@ -52,7 +52,6 @@ class SlotExpr:
         return [ast.Assign(targets=[target], value=value)]
 
 
-
 class Layout:
 
     def __init__(self, template):
