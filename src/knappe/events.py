@@ -1,11 +1,10 @@
-from knappe.collections import TypeMapping
 import abc
-import collections.abc
 import typing as t
 from inspect import isclass, signature
 from prejudice.types import Predicate, Predicates
 from prejudice.utils import resolve_constraints
 from prejudice.errors import ConstraintsErrors
+from knappe.collections import TypeMapping
 
 
 class Event(abc.ABC):

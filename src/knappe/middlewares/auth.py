@@ -1,8 +1,8 @@
 import typing as t
 from knappe.response import Response
 from knappe.request import WSGIRequest
-from knappe.auth import Source, Authenticator
-from knappe.types import RqT, RsT, Handler, Middleware, Request
+from knappe.auth import Authenticator
+from knappe.types import RqT, RsT, Handler
 
 
 Filter = t.Callable[[Handler, RqT], t.Optional[RsT]]

@@ -1,4 +1,3 @@
-from horseman.response import Response
 from knappe.pipeline import Pipeline
 from knappe.middlewares.session import HTTPSession
 from knappe.request import WSGIRequest, RoutingRequest

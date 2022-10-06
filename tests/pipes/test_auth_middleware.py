@@ -1,4 +1,3 @@
-from knappe.types import Request, User
 from knappe.response import Response
 from knappe.request import WSGIRequest
 from knappe.testing import DictSource, UserObject
@@ -14,7 +13,7 @@ def test_auth(environ, http_session_store):
         return Response(201)
 
     request = WSGIRequest(environ)
-    authentication: Authentication[WSGIrequest, Response] = Authentication(
+    authentication: Authentication[WSGIRequest, Response] = Authentication(
         authenticator=WSGISessionAuthenticator([
             DictSource({'admin': 'admin'})
         ])
@@ -57,7 +56,7 @@ def test_filter(environ):
             return Response(403)
 
 
-    authentication: Authentication[WSGIrequest, Response] = Authentication(
+    authentication: Authentication[WSGIRequest, Response] = Authentication(
         authenticator=WSGISessionAuthenticator([
             DictSource({'admin': 'admin'}),
             DictSource({'test': 'test'}),

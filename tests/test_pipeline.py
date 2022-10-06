@@ -1,11 +1,8 @@
-import pytest
-from webtest import TestApp as WSGIApp
-from knappe.response import Response
 from knappe.types import Request
 from knappe.pipeline import Pipeline
 
 
-class DummyRequest:
+class DummyRequest(Request):
 
     def __init__(self):
         self.context = {}

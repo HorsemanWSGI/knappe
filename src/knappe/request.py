@@ -1,5 +1,4 @@
 import typing as t
-from abc import ABC
 from horseman.environ import WSGIEnvironWrapper
 from horseman.types import Environ, WSGICallable
 from knappe.types import Request

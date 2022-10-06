@@ -1,10 +1,9 @@
 import typing as t
 import logging
 from http_session.session import Session
-from knappe.types import Handler, Config
 from knappe.request import WSGIRequest
 from knappe.response import Response
-from knappe.types import Handler, Middleware
+from knappe.types import Config, Handler
 
 
 class Message(t.NamedTuple):

@@ -3,9 +3,8 @@ from transaction import TransactionManager
 from prejudice import resolve_constraints
 from prejudice.errors import ConstraintError
 from prejudice.types import Predicates
-from knappe.request import WSGIRequest
 from knappe.response import Response
-from knappe.types import Handler, Middleware
+from knappe.types import Handler
 
 
 def bad_response(request, response):
