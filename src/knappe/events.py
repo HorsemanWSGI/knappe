@@ -71,9 +71,9 @@ class Subscribers(TypeMapping[Event, Subscription]):
                 f"{event_type} has no subscription for {subscriber}.")
 
     def add_subscriber(self,
-                      event_type: t.Type[Event],
-                      subscriber: Subscriber,
-                      *predicates: Predicate):
+                       event_type: t.Type[Event],
+                       subscriber: Subscriber,
+                       *predicates: Predicate):
         if self.strict:
             self.check_subscriber(event_type, subscriber)
         subscription = Subscription(
