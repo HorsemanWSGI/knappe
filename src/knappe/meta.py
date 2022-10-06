@@ -1,6 +1,6 @@
 import inspect
 import typing as t
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 from horseman.types import HTTPMethod, HTTPMethods
 from knappe.datastructures import EndpointDefinition
 
@@ -8,16 +8,7 @@ from knappe.datastructures import EndpointDefinition
 METHODS = frozenset(t.get_args(HTTPMethod))
 
 
-class EndpointType(ABCMeta):
-
-    @abstractmethod
-    def as_endpoint(self,
-                    metadata: t.Optional[t.Mapping[str, t.Any]] = None,
-                    **kwargs) -> EndpointDefinition:
-        pass
-
-
-class HTTPEndpointMeta(EndpointType):
+class HTTPEndpointMeta(ABCMeta):
 
     def as_endpoint(self,
                     methods: t.Optional[HTTPMethods] = None,
@@ -39,7 +30,7 @@ class HTTPMethodEndpointMeta(HTTPEndpointMeta):
     def as_endpoint(self,
                     methods: t.Optional[HTTPMethods] = None,
                     metadata: t.Optional[t.Mapping[str, t.Any]] = None,
-                    **kwargs):
+                    **kwargs) -> t.Mapping[HTTPMethod, EndpointDefinition]:
 
         extract = methods is not None and methods or METHODS
         inst = self()

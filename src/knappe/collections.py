@@ -70,8 +70,8 @@ class ComponentsTopology(t.Generic[C], t.Collection[C]):
         def visiter(node):
             for target in graph[node]:
                 if target not in seen:
-                   seen.add(target)
-                   visiter(target)
+                    seen.add(target)
+                    visiter(target)
             result.appendleft(node)
 
         visiter(node)

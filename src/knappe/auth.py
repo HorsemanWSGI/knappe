@@ -26,7 +26,7 @@ class Authenticator(t.Generic[RqT, Credentials], abc.ABC):
     def __init__(self, sources: t.Iterable[Source[RqT, Credentials]]):
         self.sources = sources
 
-    def from_credentials(self,request: RqT, credentials: Credentials
+    def from_credentials(self, request: RqT, credentials: Credentials
                          ) -> t.Optional[User]:
         for source in self.sources:
             user = source.find(credentials, request)
