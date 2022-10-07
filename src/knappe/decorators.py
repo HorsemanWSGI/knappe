@@ -26,13 +26,16 @@ def html(
         if isinstance(result, Response):
             return result
         request = args[0]
-        ui = request.get('ui')
+        ui = request.context.get('ui')
         if ui is None:
             layout = None
             template = default_template
         else:
             layout = ui.layout
-            template = ui.templates.get(template_name, default_template)
+            try:
+                template = ui.templates[template_name]
+            except ValueError:
+                template = default_template
         if template is None:
             raise NotImplementedError('No template.')
         rendered = template.render(**result)
