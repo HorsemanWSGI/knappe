@@ -43,8 +43,8 @@ class HTTPSession:
             session = request.context.get('http_session')
             if session is None:
                 new = True
-                if request.environ.cookies and (
-                        sig := request.environ.cookies.get(
+                if request.cookies and (
+                        sig := request.cookies.get(
                             self.manager.cookie_name)):
                     try:
                         sid = str(self.manager.verify_id(sig), 'utf-8')
@@ -79,10 +79,10 @@ class HTTPSession:
             elif session.new:
                 return response
 
-            domain = request.environ['HTTP_HOST'].split(':', 1)[0]
+            domain = request['HTTP_HOST'].split(':', 1)[0]
             cookie = self.manager.cookie(
                 session.sid,
-                request.environ.script_name or '/',
+                request.script_name or '/',
                 domain,
                 secure=self.config.secure,
                 samesite=self.config.samesite,

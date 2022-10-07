@@ -5,27 +5,24 @@ from knappe.types import Request
 from knappe.datastructures import MatchedEndpoint
 
 
-class WSGIRequest(Request):
+class WSGIRequest(Request, WSGIEnvironWrapper):
 
-    __slots__ = ('app', 'environ', 'params', 'context')
+    __slots__ = ('app', 'context')
 
-    environ: WSGIEnvironWrapper
     app: t.Optional[WSGICallable]
-    params: t.Optional[t.Mapping[str, t.Any]]
 
     def __init__(self,
                  environ: Environ,
                  app: t.Optional[WSGICallable] = None,
                  context: t.MutableMapping[str, t.Any] = None):
+        WSGIEnvironWrapper.__init__(self, environ)
         self.app = app
-        self.environ = WSGIEnvironWrapper(environ)
         self.context = context if context is not None else {}
-        self.params = {}
 
 
 class RoutingRequest(WSGIRequest):
 
-    __slots__ = ('app', 'environ', 'endpoint', 'context')
+    __slots__ = ('app', 'context', 'endpoint')
 
     endpoint: t.Optional[MatchedEndpoint]
 
@@ -34,13 +31,14 @@ class RoutingRequest(WSGIRequest):
                  app: t.Optional[WSGICallable] = None,
                  endpoint: t.Optional[MatchedEndpoint] = None,
                  context: t.MutableMapping[str, t.Any] = None):
+        WSGIEnvironWrapper.__init__(self, environ)
         self.app = app
         self.environ = WSGIEnvironWrapper(environ)
         self.context = context if context is not None else {}
         self.endpoint = endpoint
 
     @property
-    def params(self):
+    def params(self) -> t.Optional[t.Mapping[str, t.Any]]:
         if self.endpoint:
             return self.endpoint.params
         return None

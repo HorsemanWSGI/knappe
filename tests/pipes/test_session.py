@@ -5,6 +5,7 @@ from knappe.response import Response
 from knappe.routing import Router
 from horseman.mapping import RootNode
 from webtest import TestApp as WSGIApp
+from knappe.pipeline import Pipeline
 
 
 class Application(RootNode):
@@ -16,7 +17,7 @@ class Application(RootNode):
     def resolve(self, path_info, environ):
         request = RoutingRequest(environ, app=self)
         request.endpoint = self.router.match_method(
-            path_info, request.environ.method)
+            path_info, request.method)
         wrapped = self.pipeline(request.endpoint.handler)
         return wrapped(request)
 

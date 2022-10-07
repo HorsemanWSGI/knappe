@@ -38,7 +38,7 @@ def security_bypass(*urls: str) -> Filter:
     unprotected: t.FrozenSet[str] = frozenset(*urls)
 
     def _filter(caller: Handler[WSGIRequest, Response], request: WSGIRequest):
-        if request.environ.path in unprotected:
+        if request.path in unprotected:
             return caller(request)
 
     return _filter
@@ -48,7 +48,7 @@ def secured(path: str) -> Filter:
 
     def _filter(caller: Handler[WSGIRequest, Response], request: WSGIRequest):
         if request.context.get('user') is None:
-            return Response.redirect(request.environ.script_name + path)
+            return Response.redirect(request.script_name + path)
 
     return _filter
 
@@ -56,9 +56,9 @@ def secured(path: str) -> Filter:
 def TwoFA(path: str, checker: t.Callable[[WSGIRequest], bool]) -> Filter:
 
     def _filter(caller: Handler[WSGIRequest, Response], request: WSGIRequest):
-        if request.environ.path == path:
+        if request.path == path:
             return caller(request)
         if not checker(request):
-            return Response.redirect(request.environ.script_name + path)
+            return Response.redirect(request.script_name + path)
 
     return _filter

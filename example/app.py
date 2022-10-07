@@ -1,14 +1,40 @@
+import colander
+import deform
 import typing as t
+import pathlib
+import http_session_file
 from chameleon.zpt.loader import TemplateLoader
 from chameleon.zpt.template import PageTemplateFile
+from horseman.mapping import RootNode
 from knappe.decorators import context, html, json, composed, trigger
 from knappe.response import Response
+from knappe.auth import WSGISessionAuthenticator
 from knappe.request import RoutingRequest as Request
 from knappe.routing import Router
+from knappe.middlewares import auth
+from knappe.middlewares.session import HTTPSession
 from knappe.ui import SlotExpr, slot, UI, Layout
 from knappe.meta import HTTPMethodEndpointMeta
-from horseman.mapping import RootNode
-from horseman.environ import WSGIEnvironWrapper
+
+
+authentication = auth.Authentication(
+    authenticator=WSGISessionAuthenticator([
+        DictSource({"admin": "admin"})
+    ]),
+    filters=(
+        auth.security_bypass({"/login"}),
+        auth.secured(path="/login")
+    )
+)
+
+session = HTTPSession(
+    store=http_session_file.FileStore(pathlib.Path('./session'), 300),
+    secret='secret',
+    salt='salt',
+    cookie_name='session',
+    secure=False,
+    TTL=300
+)
 
 
 PageTemplateFile.expression_types['slot'] = SlotExpr
@@ -28,20 +54,32 @@ themeUI = UI(
 
 class Application(RootNode):
 
-    def __init__(self, config=None):
+    def __init__(self, middlewares=(), config=None):
         self.config = config
         self.router = Router()
+        pipeline: Pipeline[Request, Response] = Pipeline(middlewares)
 
     def resolve(self, path_info, environ):
-        environ = WSGIEnvironWrapper(environ)
-        import pdb
-        pdb.set_trace()
-        endpoint = self.router.match_method(path_info, environ.method)
-        request = Request(environ, app=self, endpoint=endpoint)
+        request = Request(environ, app=self)
+        endpoint = self.router.match_method(request.path, request.method)
+        request.context['ui'] = themeUI
         return endpoint.handler(request)
 
 
 app = Application()
+
+
+class LoginForm(colander.Schema):
+
+    username = colander.SchemaNode(
+        colander.String(),
+        title="Login")
+
+    password = colander.SchemaNode(
+        colander.String(),
+        widget=deform.widget.PasswordWidget(),
+        title="Password",
+        description="Your password")
 
 
 def get_document(request):
