@@ -8,6 +8,7 @@ setup(
         'chameleon',
         'horseman >= 1.0a1',
         'http_session',
+        'inspect_mate',
         'itsdangerous',
         'multimethod',
         'orjson',
