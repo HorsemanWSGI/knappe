@@ -21,6 +21,7 @@ RsT = t.TypeVar('RsT', covariant=True)  # Response type
 Config = t.Mapping[str, t.Any]
 Handler = t.Callable[[RqT], RsT]
 Middleware = t.Callable[[Handler, t.Optional[Config]], Handler]
+Application = WSGICallable
 
 
 __all__ = [

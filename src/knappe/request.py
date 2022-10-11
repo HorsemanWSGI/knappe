@@ -1,7 +1,7 @@
 import typing as t
 from horseman.environ import WSGIEnvironWrapper
-from horseman.types import Environ, WSGICallable
-from knappe.types import Request
+from horseman.types import Environ
+from knappe.types import Request, Application
 from knappe.datastructures import MatchedEndpoint
 
 
@@ -9,11 +9,9 @@ class WSGIRequest(Request, WSGIEnvironWrapper):
 
     __slots__ = ('app', 'context')
 
-    app: t.Optional[WSGICallable]
-
     def __init__(self,
                  environ: Environ,
-                 app: t.Optional[WSGICallable] = None,
+                 app: t.Optional[Application] = None,
                  context: t.MutableMapping[str, t.Any] = None):
         WSGIEnvironWrapper.__init__(self, environ)
         self.app = app
@@ -28,7 +26,7 @@ class RoutingRequest(WSGIRequest):
 
     def __init__(self,
                  environ: Environ,
-                 app: t.Optional[WSGICallable] = None,
+                 app: t.Optional[Application] = None,
                  endpoint: t.Optional[MatchedEndpoint] = None,
                  context: t.MutableMapping[str, t.Any] = None):
         WSGIEnvironWrapper.__init__(self, environ)

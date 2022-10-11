@@ -60,13 +60,6 @@ class Blueprint(t.Generic[R]):
     def __iter__(self) -> t.Iterator[Call]:
         return iter(self._calls)
 
-    def apply_to(self, registry: R_co):
-        for call in self._calls:
-            target = getattr(registry, call.name)
-            result = target(*call.params.args, **call.params.kwargs)
-            if call.decorated is not None:
-                result(call.decorated)
-
     def __getattr__(self, name: str):
         sig = self._signatures.get(name)
         if sig is None:
@@ -92,3 +85,11 @@ class Blueprint(t.Generic[R]):
             return as_decorator
 
         return call_registration
+
+
+def apply_blueprint(blueprint: Blueprint[R], registry: R_co):
+    for call in blueprint:
+        target = getattr(registry, call.name)
+        result = target(*call.params.args, **call.params.kwargs)
+        if call.decorated is not None:
+            result(call.decorated)

@@ -55,3 +55,12 @@ class Router(Routes):
             raise HTTPError(HTTPStatus.METHOD_NOT_ALLOWED)
 
         return endpoint.matched(path_info, frozendict(params))
+
+    def __iter__(self):
+        def route_iterator(edges):
+            if edges:
+                for edge in edges:
+                    if edge.child.path:
+                        yield edge.child.path, edge.child.payload
+                    yield from route_iterator(edge.child.edges)
+        yield from route_iterator(self.root.edges)
