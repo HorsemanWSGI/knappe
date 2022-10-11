@@ -81,15 +81,3 @@ def context(factory):
             raise HTTPError(400)
         return wrapped(*args, context, **kwargs)
     return context_wrapper
-
-
-def trigger(button):
-    buttons = sys._getframe(1).f_locals.setdefault('_buttons', {})
-    buttons[(button.name, button.value)] = button
-
-    def trigger_wrapper(func):
-        triggers = sys._getframe(1).f_locals.setdefault('_triggers', {})
-        triggers[(button.name, button.value)] = func
-        return func
-
-    return trigger_wrapper
