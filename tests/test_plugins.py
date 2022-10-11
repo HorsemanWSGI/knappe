@@ -43,6 +43,20 @@ def test_plugin_install():
     assert app.__installed_plugins__ == {'my empty plugin'}
 
 
+def test_plugin_install_func():
+
+    def func():
+        pass
+
+    plugin = Plugin('my empty plugin')
+    plugin.install(func)
+    assert func.__installed_plugins__ == {'my empty plugin'}
+
+    # No duplication.
+    plugin.install(func)
+    assert func.__installed_plugins__ == {'my empty plugin'}
+
+
 def test_plugin_install_with_hooks():
 
     tracker = Mock()
@@ -82,6 +96,31 @@ def test_plugin_with_singular_blueprint():
 
     plugin.install(app)
     assert dict(app.router) == {
+        '/': {
+            'GET': EndpointDefinition(
+                handler=handler,
+                metadata=frozendict()
+            )
+        }
+    }
+
+
+def test_plugin_with_singular_blueprint_on_func():
+    router = Blueprint(routing.Router)
+    plugin = Plugin('route', blueprints={"router": router})
+
+    def func():
+        """This is a non-sense example.
+        """
+
+    func.router = routing.Router()
+
+    @router.register('/')
+    def handler(request):
+        return Response(200, body='ok')
+
+    plugin.install(func)
+    assert dict(func.router) == {
         '/': {
             'GET': EndpointDefinition(
                 handler=handler,
