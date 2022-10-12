@@ -72,6 +72,8 @@ class Blueprint(t.Generic[R]):
         return copied
 
     def __getattr__(self, name: str):
+        if name.startswith('_'):
+            return super().__getattr__(name)
         sig = self._signatures.get(name)
         if sig is None:
             if func := self._decorable_functions.get(name):
