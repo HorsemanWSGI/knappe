@@ -15,6 +15,7 @@ setup(
         'prejudice',
         'transaction',
         'wrapt',
+        'ordered_set',
     ],
     extras_require={
         'test': [
