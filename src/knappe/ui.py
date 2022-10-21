@@ -4,7 +4,7 @@ from chameleon.astutil import Symbol
 from chameleon.codegen import template
 from knappe.request import Request
 from knappe.response import Response
-from multimethod import multimethod
+from multimethod import multimethod, DispatchError
 
 
 Slot = t.Callable[[Request, str, t.Any], str]
@@ -22,7 +22,11 @@ def query_slot(econtext, name):
     view = econtext.get('view', object())
     context = econtext.get('context', object())
     try:
-        result = slot(request, view, context, name)
+        try:
+            result = slot(request, view, context, name)
+        except DispatchError:
+            # log me
+            return ''
         if isinstance(result, Response):
             assert isinstance(result.body, str)
             return result.body
