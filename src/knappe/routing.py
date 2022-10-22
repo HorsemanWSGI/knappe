@@ -10,17 +10,45 @@ from knappe.datastructures import MatchedEndpoint, EndpointDefinition
 
 class Router(Routes):
 
+    __slots__ = ('_names')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._names = {}
+
+    def __iter__(self):
+        def route_iterator(edges):
+            if edges:
+                for edge in edges:
+                    if edge.child.path:
+                        yield edge.child.path, edge.child.payload
+                    yield from route_iterator(edge.child.edges)
+        yield from route_iterator(self.root.edges)
+
+    def has_route(self, name: str):
+        return name in self._names
+
     def add(self,
             path: str,
-            route_definition: t.Mapping[HTTPMethod, EndpointDefinition]):
+            route_definition: t.Mapping[HTTPMethod, EndpointDefinition],
+            name: t.Optional[str] = None,
+            ):
+        if name:
+            if found := self._names.get(name):
+                if path != found:
+                    raise NameError(
+                        f"Route {name!r} already exists for path {found!r}.")
+            else:
+                self._names[name] = path
         return super().add(path, **route_definition)
 
     def register(self,
                  path: str,
                  methods: t.Optional[HTTPMethods] = None,
                  **metadata):
-        metadata = frozendict(metadata)
 
+        name = metadata.pop("name", None)
+        metadata = frozendict(metadata)
         def routing(routable: t.Callable):
             if isinstance(routable, HTTPEndpointMeta):
                 route_definition = routable.as_endpoint(
@@ -38,7 +66,7 @@ class Router(Routes):
                 raise NotImplementedError(
                     f"Unknown type of routable: {routable!r}"
                 )
-            self.add(path, route_definition)
+            self.add(path, route_definition, name=name)
             return routable
 
         return routing
@@ -56,11 +84,13 @@ class Router(Routes):
 
         return endpoint.matched(path_info, frozendict(params))
 
-    def __iter__(self):
-        def route_iterator(edges):
-            if edges:
-                for edge in edges:
-                    if edge.child.path:
-                        yield edge.child.path, edge.child.payload
-                    yield from route_iterator(edge.child.edges)
-        yield from route_iterator(self.root.edges)
+    def url_for(self, name: str, **params):
+        path = self._names.get(name)
+        if path is None:
+            raise LookupError(f'Unknown route `{name}`.')
+        try:
+            # Raises a KeyError too if some param misses
+            return path.format(**params)
+        except KeyError:
+            raise ValueError(
+                f"No route found with name {name} and params {params}.")
