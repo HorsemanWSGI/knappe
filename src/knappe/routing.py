@@ -94,3 +94,30 @@ class Router(Routes):
         except KeyError:
             raise ValueError(
                 f"No route found with name {name} and params {params}.")
+
+    def get(self, path: str, **metadata):
+        return self.register(path, methods=('GET',), **metadata)
+
+    def post(self, path: str, **metadata):
+        return self.register(path, methods=('POST',), **metadata)
+
+    def put(self, path: str, **metadata):
+        return self.register(path, methods=('PUT',), **metadata)
+
+    def delete(self, path: str, **metadata):
+        return self.register(path, methods=('DELETE',), **metadata)
+
+    def options(self, path: str, **metadata):
+        return self.register(path, methods=('OPTIONS',), **metadata)
+
+    def head(self, path: str, **metadata):
+        return self.register(path, methods=('HEAD',), **metadata)
+
+    def patch(self, path: str, **metadata):
+        return self.register(path, methods=('PATCH',), **metadata)
+
+    def trace(self, path: str, **metadata):
+        return self.register(path, methods=('TRACE',), **metadata)
+
+    def connect(self, path: str, **metadata):
+        return self.register(path, methods=('CONNECT',), **metadata)
