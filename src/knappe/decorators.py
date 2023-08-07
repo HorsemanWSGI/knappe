@@ -3,8 +3,13 @@ import wrapt
 import orjson
 import functools
 import typing as t
+from chameleon.zpt import template
 from horseman.exceptions import HTTPError
 from knappe.response import Response, DecoratedResponse
+
+
+DEFAULT = ""
+Default = t.Literal[DEFAULT]
 
 
 @wrapt.decorator
@@ -18,29 +23,38 @@ def composed(wrapped, instance, args, kwargs):
 def html(
         template_name: str,
         response_class: t.Type[DecoratedResponse] = DecoratedResponse,
-        default_template=None,
+        default_template: t.Optional[template.PageTemplate] = None,
+        layout_name: t.Optional[str | Default] = DEFAULT,
         code=200):
+
     @wrapt.decorator
     def renderer(wrapped, instance, args, kwargs):
         result = wrapped(*args, **kwargs)
         if isinstance(result, Response):
             return result
+
         request = args[0]
-        ui = request.context.get('ui')
-        if ui is None:
-            layout = None
-            template = default_template
-        else:
-            layout = ui.layout
+        if ui := request.context.get('ui'):
+            layout = ui.layouts.find_one(request, name=layout_name).value
             try:
                 template = ui.templates[template_name]
             except ValueError:
                 template = default_template
+        else:
+            layout = None
+            template = default_template
+
         if template is None:
             raise NotImplementedError('No template.')
-        rendered = template.render(**result)
+
+        namespace = {
+            'ui': ui,
+            'macro': ui.macros.macro,
+        }
+        rendered = template.render(**(result | namespace))
         response = response_class(
-            code, body=rendered, layout=layout, headers={
+            code, body=rendered, layout=layout, namespace=namespace,
+            headers={
                 'Content-Type': 'text/html; charset=utf-8'
             }
         )

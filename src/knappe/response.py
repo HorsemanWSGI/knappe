@@ -104,6 +104,7 @@ class DecoratedResponse(Response):
            and self.layout.accepts(self.content_type):
             return self.layout(
                 self.body, request=self.request, **self.namespace)
+
         return self.body
 
     def __iter__(self):

@@ -1,4 +1,5 @@
 import typing as t
+from enum import Enum
 from types import MappingProxyType
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -16,10 +17,8 @@ T = t.TypeVar('T')
 K = t.TypeVar('K', bound=t.Hashable)
 
 
-def immutable_mapping(mapping: t.Optional[t.Mapping] = None):
-    if mapping is None:
-        mapping = {}
-    return MappingProxyType(mapping)
+class Lookup(Enum):
+    ALL = 'all'
 
 
 @dataclass
@@ -120,12 +119,12 @@ class Registry(t.Generic[C], Mapping[Signature, C]):
     __slots__ = ('_resolver', '_ordered')
 
     def __init__(self, *components: t.Iterable[t.Tuple[Signature, C]]):
-        self._ordered: PriorityChain[Signature, C] = PriorityChain()
+        self._ordered: PriorityChain[Signature] = PriorityChain()
         self._resolver: Resolver = Resolver()
         super().__init__(components)
 
     def __setitem__(self, signature: Signature, component: C):
-        self._ordered.add(component, signature)
+        self._ordered.add(signature)
         self._resolver.register(signature)
         super().__setitem__(signature, component)
 
@@ -135,19 +134,21 @@ class Registry(t.Generic[C], Mapping[Signature, C]):
         del self._ordered[(signature, component)]
 
     def find_one(self, *args):
-        match = self.resolver.resolve(args)
+        match = self._resolver.resolve(args)
         return self[match]
 
     def find_all(self, *args):
-        for signature, component in self._ordered:
+        for signature in self._ordered:
             if signature.match(args):
-                yield component
+                yield self[signature]
 
-    def register(self, signature: Signature, *args, **kwargs):
+    def register(self, discriminant: t.Iterable[t.Type], *args, **kwargs):
         def register_component(value):
-            self[signature] = self.factory.create(value, *args, **kwargs)
+            signature = Signature(*discriminant)
+            self[signature] = self.factory.create(
+                value, hash(signature), *args, **kwargs)
             return value
-        return register_resolver
+        return register_component
 
     def __or__(self, other):
         if not isinstance(other, self.__class__):
@@ -156,3 +157,25 @@ class Registry(t.Generic[C], Mapping[Signature, C]):
                 f"and {other.__class__!r}"
             )
         return self.__class__(self._ordered | other._ordered)
+
+
+class NamedRegistry(Registry):
+
+    def find_one(self, *args, name: str = ""):
+        return super().find_one(*args, name)
+
+    def find_all(self, *args):
+        yield from super().find_all(*args, Lookup.ALL)
+
+    def register(self, discriminant: t.Iterable[t.Type], *args, name: str = None, **kwargs):
+        if name is None:
+            raise NameError('A name is required.')
+        def register_component(value):
+            item = self.factory.create(value, name, *args, **kwargs)
+            signature = Signature(
+                *discriminant,
+                t.Literal[item.identifier] | t.Literal[Lookup.ALL]
+            )
+            self[signature] = item
+            return value
+        return register_component

@@ -1,3 +1,4 @@
+import bisect
 import typing as t
 from collections.abc import Hashable
 
@@ -94,13 +95,13 @@ class ComponentsTopology(t.Generic[C], t.Collection[C]):
         return iter(self.sorted)
 
 
-class PriorityChain(t.Generic[S, C]):
+class PriorityChain(t.Generic[S]):
 
     __slots__ = ('_chain',)
 
-    _chain: t.List[t.Tuple[S, C]]
+    _chain: t.List[S]
 
-    def __init__(self, *items: t.Iterable[t.Tuple[S, C]]):
+    def __init__(self, *items: t.Iterable[S]):
         self._chain = list(items)
 
     def __iter__(self):
@@ -114,20 +115,16 @@ class PriorityChain(t.Generic[S, C]):
             )
         return self.__class__(*[*self._chain, *other._chain])
 
-    def add(self, item: C, sortable: S):
-        insert = (sortable, item)
+    def add(self, sortable: S):
         if not self._chain:
-            self._chain = [insert]
-        elif insert in self._chain:
-            raise KeyError('Item {item!r} already exists as {sortable!r}.')
+            self._chain = [sortable]
         else:
-            bisect.insort(self._chain, insert)
+            bisect.insort(self._chain, sortable)
 
-    def remove(self, item: C, sortable: S):
-        insert = (sortable, item)
-        if insert not in self._chain:
-            raise KeyError('Item {item!r} doest not exist as {sortable!r}.')
-        self._chain.remove(insert)
+    def remove(self, sortable: S):
+        if sortable not in self._chain:
+            raise KeyError('{sortable!r} does not exist.')
+        self._chain.remove(sortable)
 
     def clear(self):
         self._chain.clear()

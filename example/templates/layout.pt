@@ -1,0 +1,6 @@
+<html>
+  <body>
+    <div tal:content="structure slot: header" />
+    my content is <span tal:replace="structure content" />
+  </body>
+</html>
