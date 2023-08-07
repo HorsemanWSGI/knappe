@@ -1,6 +1,6 @@
 from webtest.app import TestRequest as Request
 from knappe.request import RoutingRequest
-from knappe.datastructures import MatchedEndpoint
+from knappe.meta import Route, MatchedRoute
 
 
 def some_handler(request: RoutingRequest):
@@ -9,8 +9,14 @@ def some_handler(request: RoutingRequest):
 
 def test_routing_request():
 
-    matched = MatchedEndpoint(
-        uri='/', handler=some_handler, params={'test': 1}
+    matched = MatchedRoute(
+        path='/',
+        route=Route(
+            some_handler,
+            '/'
+        ),
+        params={'test': 1},
+        method='GET'
     )
 
     environ = Request.blank('/?key=1', method='GET').environ

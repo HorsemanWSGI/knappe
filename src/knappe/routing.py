@@ -1,88 +1,77 @@
+import autoroutes
 import typing as t
+import inspect
+from types import FunctionType
 from http import HTTPStatus
-from frozendict import frozendict
-from autoroutes import Routes
+from dataclasses import dataclass, field
+from prejudice.types import Predicate
+from horseman.types import WSGICallable, HTTPMethod
 from horseman.exceptions import HTTPError
-from horseman.types import HTTPMethod, HTTPMethods
-from knappe.meta import HTTPEndpointMeta
-from knappe.datastructures import MatchedEndpoint, EndpointDefinition
+from knappe.components.meta import Component, Mapping
+from knappe.views import APIView
+from knappe.request import Request
+from knappe.meta import Route, MatchedRoute
+from plum import dispatch
+from frozendict import frozendict
 
 
-class Router(Routes):
+METHODS = frozenset(t.get_args(HTTPMethod))
+HTTPMethods = t.Iterable[HTTPMethod]
 
-    __slots__ = ('_names')
+
+@dispatch
+def as_routable(view: APIView, methods: t.Optional[HTTPMethods]):
+    inst = view()
+    members = inspect.getmembers(
+        inst, predicate=(lambda x: inspect.ismethod(x)
+                         and x.__name__ in METHODS))
+    for name, func in members:
+        yield func, name
+
+
+@dispatch
+def as_routable(view: FunctionType, methods: t.Optional[HTTPMethods]):
+    if methods is None:
+        methods = ['GET']
+    unknown = set(methods) - METHODS
+    if unknown:
+        raise ValueError(
+            f"Unknown HTTP method(s): {', '.join(unknown)}")
+    yield view, methods
+
+
+class RouteStore(Mapping[t.Tuple[str, HTTPMethod], Route]):
+
+    factory: t.Type[Route] = Route
+    _names: t.Mapping[str, str]
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         self._names = {}
+        super().__init__(*args, **kwargs)
 
-    def __iter__(self):
-        def route_iterator(edges):
-            if edges:
-                for edge in edges:
-                    if edge.child.path:
-                        yield edge.child.path, edge.child.payload
-                    yield from route_iterator(edge.child.edges)
-        yield from route_iterator(self.root.edges)
-
-    def has_route(self, name: str):
-        return name in self._names
-
-    def add(self,
-            path: str,
-            route_definition: t.Mapping[HTTPMethod, EndpointDefinition],
-            name: t.Optional[str] = None,
-            ):
-        if name:
-            if found := self._names.get(name):
-                if path != found:
-                    raise NameError(
-                        f"Route {name!r} already exists for path {found!r}.")
+    def __setitem__(self, key, route):
+        if route.name:
+            if existing := self._names.get(route.name):
+                if existing != route.path:
+                    raise NameError('Route already existing')
             else:
-                self._names[name] = path
-        return super().add(path, **route_definition)
+                self._names[route.name] = route.path
+        super().__setitem__(key, route)
+
+    def add(self, route: Route):
+        self[(route.identifier, route.method)] = route
 
     def register(self,
-                 path: str,
-                 methods: t.Optional[HTTPMethods] = None,
-                 **metadata):
-
-        name = metadata.pop("name", None)
-        metadata = frozendict(metadata)
-        def routing(routable: t.Callable):
-            if isinstance(routable, HTTPEndpointMeta):
-                route_definition = routable.as_endpoint(
-                    methods=methods,
-                    metadata=metadata
-                )
-            elif callable(routable):
-                route_definition = {
-                    verb: EndpointDefinition(
-                        handler=routable,
-                        metadata=metadata
-                    ) for verb in (methods or ('GET',))
-                }
-            else:
-                raise NotImplementedError(
-                    f"Unknown type of routable: {routable!r}"
-                )
-            self.add(path, route_definition, name=name)
-            return routable
-
+                 identifier: str,
+                 methods: t.Optional[t.Iterable[HTTPMethod]] = None,
+                 **kwargs):
+        def routing(value: WSGICallable | t.Type[APIView]):
+            for endpoint, verbs in as_routable(value, methods):
+                for method in verbs:
+                    self.create(
+                        endpoint, identifier, method=method, **kwargs)
+            return value
         return routing
-
-    def match_method(self,
-                     path_info: str,
-                     method: HTTPMethod) -> MatchedEndpoint:
-        found, params = self.match(path_info)
-        if found is None:
-            raise HTTPError(HTTPStatus.NOT_FOUND)
-
-        endpoint = found.get(method)
-        if endpoint is None:
-            raise HTTPError(HTTPStatus.METHOD_NOT_ALLOWED)
-
-        return endpoint.matched(path_info, frozendict(params))
 
     def url_for(self, name: str, **params):
         path = self._names.get(name)
@@ -121,3 +110,34 @@ class Router(Routes):
 
     def connect(self, path: str, **metadata):
         return self.register(path, methods=('CONNECT',), **metadata)
+
+
+class Router(RouteStore):
+
+    routes = autoroutes.Routes
+
+    def __init__(self, *args, **kwargs):
+        self.routes = autoroutes.Routes()
+        super().__init__(*args, **kwargs)
+
+    def __setitem__(self, key, route):
+        super().__setitem__(key, route)
+        self.routes.add(route.path, **{route.method: route})
+
+    def match(self,
+              path: str,
+              method: HTTPMethod) -> t.Optional[MatchedRoute]:
+
+        found, params = self.routes.match(path)
+        if found is None:
+            return None
+
+        if route := found.get(method):
+            return MatchedRoute(
+                path=path,
+                route=route,
+                method=method,
+                params=frozendict(params)
+            )
+
+        raise HTTPError(HTTPStatus.METHOD_NOT_ALLOWED)

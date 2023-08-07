@@ -4,6 +4,7 @@ from collections.abc import Hashable
 
 C = t.TypeVar('C', bound=Hashable)
 T = t.TypeVar('T', covariant=True)
+S = t.TypeVar('S')
 
 
 class TypeMapping(t.Generic[T, C], t.Dict[t.Type[T], t.List[C]]):
@@ -91,3 +92,42 @@ class ComponentsTopology(t.Generic[C], t.Collection[C]):
 
     def __iter__(self) -> t.Iterator[C]:
         return iter(self.sorted)
+
+
+class PriorityChain(t.Generic[S, C]):
+
+    __slots__ = ('_chain',)
+
+    _chain: t.List[t.Tuple[S, C]]
+
+    def __init__(self, *items: t.Iterable[t.Tuple[S, C]]):
+        self._chain = list(items)
+
+    def __iter__(self):
+        return iter(self._chain)
+
+    def __or__(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError(
+                f"Unsupported merge between {self.__class__!r} "
+                f"and {other.__class__!r}"
+            )
+        return self.__class__(*[*self._chain, *other._chain])
+
+    def add(self, item: C, sortable: S):
+        insert = (sortable, item)
+        if not self._chain:
+            self._chain = [insert]
+        elif insert in self._chain:
+            raise KeyError('Item {item!r} already exists as {sortable!r}.')
+        else:
+            bisect.insort(self._chain, insert)
+
+    def remove(self, item: C, sortable: S):
+        insert = (sortable, item)
+        if insert not in self._chain:
+            raise KeyError('Item {item!r} doest not exist as {sortable!r}.')
+        self._chain.remove(insert)
+
+    def clear(self):
+        self._chain.clear()
