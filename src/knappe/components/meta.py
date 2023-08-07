@@ -1,16 +1,15 @@
 import typing as t
 from enum import Enum
-from types import MappingProxyType
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from prejudice.errors import ConstraintError, ConstraintsErrors
+from frozendict import frozendict
+from collections import UserList, UserDict
+from prejudice.errors import ConstraintsErrors
 from prejudice.types import Predicate
 from prejudice.utils import resolve_constraints
 from plum import Signature
 from plum.resolver import Resolver
-from collections import UserList, UserDict
-from ..collections import PriorityChain
-from frozendict import frozendict
+from .collections import PriorityChain
 
 
 T = t.TypeVar('T')
@@ -62,6 +61,7 @@ class Component(t.Generic[K, T]):
             name=name,
             title=title,
             value=value,
+            description=description,
             classifiers=frozenset(classifiers or ()),
             conditions=tuple(conditions or ()),
             metadata=frozendict(metadata or {}),
@@ -130,7 +130,7 @@ class Registry(t.Generic[C], Mapping[Signature, C]):
 
     def __delitem__(self, signature):
         component = self[signature]
-        super.__delitem__(signature)
+        super().__delitem__(signature)
         del self._ordered[(signature, component)]
 
     def find_one(self, *args):

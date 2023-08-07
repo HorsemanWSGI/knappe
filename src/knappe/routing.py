@@ -3,13 +3,10 @@ import typing as t
 import inspect
 from types import FunctionType
 from http import HTTPStatus
-from dataclasses import dataclass, field
-from prejudice.types import Predicate
 from horseman.types import WSGICallable, HTTPMethod
 from horseman.exceptions import HTTPError
-from knappe.components.meta import Component, Mapping
+from knappe.components.meta import Mapping
 from knappe.views import APIView
-from knappe.request import Request
 from knappe.meta import Route, MatchedRoute
 from plum import dispatch
 from frozendict import frozendict
