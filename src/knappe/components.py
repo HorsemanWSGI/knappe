@@ -1,14 +1,14 @@
 import typing as t
-from enum import Enum
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from frozendict import frozendict
 from collections import UserList, UserDict
+from dataclasses import dataclass, field
+from enum import Enum
+from frozendict import frozendict
+from plum import Signature
+from plum.resolver import Resolver
 from prejudice.errors import ConstraintsErrors
 from prejudice.types import Predicate
 from prejudice.utils import resolve_constraints
-from plum import Signature
-from plum.resolver import Resolver
 from .collections import PriorityChain
 
 
@@ -99,7 +99,7 @@ class Components(t.Generic[C], ABC):
         return register_resolver
 
 
-class Collection(t.Generic[C], Components[C], UserList):
+class Collection(t.Generic[C], Components[C], UserList[C]):
 
     def add(self, component: C):
         self.append(component)

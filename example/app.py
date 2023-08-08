@@ -49,9 +49,11 @@ class Application(RootNode):
             app=self,
             context={'ui': self.ui}
         )
-        request.endpoint = self.router.match(path_info, request.method)
-        wrapped = self.pipeline(request.endpoint)
-        return wrapped(request)
+        if endpoint := self.router.match(path_info, request.method):
+            request.endpoint = endpoint
+            wrapped = self.pipeline(request.endpoint)
+            return wrapped(request)
+        return Response(404)
 
 
 app = Application((
