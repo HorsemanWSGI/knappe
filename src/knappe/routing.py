@@ -17,13 +17,13 @@ HTTPMethods = t.Iterable[HTTPMethod]
 
 
 @dispatch
-def as_routable(view: APIView, methods: t.Optional[HTTPMethods]):
+def as_routable(view: t.Type[APIView], methods: t.Optional[HTTPMethods]):
     inst = view()
     members = inspect.getmembers(
         inst, predicate=(lambda x: inspect.ismethod(x)
                          and x.__name__ in METHODS))
     for name, func in members:
-        yield func, name
+        yield func, [name]
 
 
 @dispatch

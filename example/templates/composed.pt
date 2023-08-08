@@ -1,0 +1,6 @@
+<div>
+  <article tal:repeat="(title, content) pages.items()">
+    <h2>${title}</h2>
+    <p tal:content="structure content" />
+  </article>
+</div>

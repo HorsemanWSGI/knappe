@@ -1,20 +1,27 @@
+import pathlib
+import colander
+import deform
+import http_session_file
 from typing import Any
 from knappe.components import Registry, NamedRegistry
 from horseman.mapping import RootNode
 from knappe.pipeline import Pipeline
 from knappe.response import Response
 from knappe.routing import Router
-from knappe.decorators import html, template
+from knappe.decorators import context
+from knappe.renderers import html, template
 from knappe.ui import UI
+from knappe.views import APIView
 from knappe.ui.slot import SlotExpr
 from knappe.ui.templates import Templates, EXPRESSION_TYPES
 from prejudice.errors import ConstraintError
 from knappe.ui.layout import Layout
 from knappe.request import WSGIRequest, RoutingRequest
 from knappe.middlewares.session import HTTPSession
-import http_session_file
-import pathlib
-
+from knappe.middlewares.auth import Authentication
+from knappe.auth import WSGISessionAuthenticator
+from knappe.testing import DictSource
+from knappe.middlewares.flash import flash
 
 
 EXPRESSION_TYPES['slot'] = SlotExpr
@@ -68,6 +75,16 @@ app = Application((
         secure=False,
         TTL=300
     ),
+    Authentication(
+        WSGISessionAuthenticator(
+            sources=(
+                DictSource({
+                    'user': 'password'
+                }),
+            )
+        )
+    ),
+    flash
 ))
 
 app.ui.templates |= Templates('./templates')
@@ -96,7 +113,7 @@ def basic_bootstrap_layout(request, body, **namespace):
 
 @app.actions.register((RoutingRequest, Any, Any), name='login', title='Login', description='Login action', conditions=(anonymous,))
 def login(request, view, item):
-    return 'some url'
+    return '/login'
 
 
 @app.actions.register((RoutingRequest, Any, Any), name='logout', title='Logout', description='Logout action', conditions=(not_anonymous,))
@@ -136,9 +153,87 @@ def search(request, manager, view, context):
     }
 
 
+@app.ui.slots.register((Header, RoutingRequest, Any, Any), name='messages')
+@template('slots/messages')
+def messages(request, manager, view, context):
+    return {
+        'messages': [m for m in request.context['flash']]
+    }
+
+
+
 @app.router.register('/')
 @html('views/index')
 def index(request):
     return {
         'message': 'foobar'
     }
+
+
+@app.router.register('/composed')
+@html('composed')
+def composed(request):
+    return {
+        'pages': {
+            'The Index': index.bare(request),
+        }
+    }
+
+
+class LoginSchema(colander.Schema):
+
+    username = colander.SchemaNode(
+        colander.String(),
+        title="Name"
+    )
+
+    password = colander.SchemaNode(
+        colander.String(),
+        title="password"
+    )
+
+
+def login_form(request):
+    schema = LoginSchema().bind(request=request)
+    process_btn = deform.form.Button(name='process', title="Process")
+    return deform.form.Form(schema, buttons=(process_btn,))
+
+
+@app.router.register('/login')
+class Login(APIView):
+
+    @html('views/form')
+    @context(login_form)
+    def GET(self, request, form):
+        return {
+            "rendered_form": form.render()
+        }
+
+    @html('views/form')
+    @context(login_form)
+    def POST(self, request, form):
+        if ('process', 'process') not in request.data.form:
+            raise NotImplementedError('No action found.')
+
+        try:
+            appstruct = form.validate(request.data.form)
+        except deform.exception.ValidationFailure as e:
+            return {
+                "rendered_form": e.render()
+            }
+
+        user = request.context['authentication'].from_credentials(
+            request, appstruct
+        )
+        if user is not None:
+            request.context['authentication'].remember(
+                request, user
+            )
+            request.context['flash'].add('Successfully logged in.')
+            return Response.redirect("/")
+
+        # Login failed.
+        request.context['flash'].add('Login failed.')
+        return {
+            "rendered_form": form.render()
+        }

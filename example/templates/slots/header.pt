@@ -6,4 +6,8 @@
     <div class="container d-flex flex-wrap justify-content-center"
          tal:content="structure slots['search']" />
   </div>
+  <div class="px-3 py-2">
+    <div class="container d-flex flex-wrap justify-content-center"
+         tal:content="structure slots['messages']" />
+  </div>
 </header>
