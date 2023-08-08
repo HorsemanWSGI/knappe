@@ -1,6 +1,6 @@
 import typing as t
 from dataclasses import dataclass, field
-from knappe.components.meta import NamedRegistry
+from knappe.components import NamedRegistry
 from .templates import Templates
 
 

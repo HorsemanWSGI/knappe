@@ -3,7 +3,8 @@ import wrapt
 import orjson
 import functools
 import typing as t
-from chameleon.zpt import template
+import collections.abc
+from chameleon.zpt.template import PageTemplate
 from horseman.exceptions import HTTPError
 from knappe.response import Response, DecoratedResponse
 
@@ -20,10 +21,43 @@ def composed(wrapped, instance, args, kwargs):
     return result
 
 
+def template(
+        template_name: str,
+        default_template: t.Optional[PageTemplate] = None):
+
+    @wrapt.decorator
+    def renderer(wrapped, instance, args, kwargs):
+        result = wrapped(*args, **kwargs)
+        if not isinstance(result, collections.abc.Mapping):
+            raise NotImplementedError(
+                'Template rendering requires a namespace mapping.')
+
+        request = args[0]
+        if ui := request.context.get('ui'):
+            template = ui.templates.get(template_name, default_template)
+            namespace = {
+                **result,
+                'ui': ui,
+                'macro': ui.macros.macro,
+                'view': instance or wrapped
+            }
+        else:
+            template = default_template
+            namespace = {
+                **result,
+                'view': instance or wrapped
+            }
+        if template is None:
+            raise NotImplementedError('No template.')
+        return template.render(**namespace)
+
+    return renderer
+
+
 def html(
         template_name: str,
         response_class: t.Type[DecoratedResponse] = DecoratedResponse,
-        default_template: t.Optional[template.PageTemplate] = None,
+        default_template: t.Optional[PageTemplate] = None,
         layout_name: t.Optional[str | Default] = DEFAULT,
         code=200):
 

@@ -5,7 +5,7 @@ from types import FunctionType
 from http import HTTPStatus
 from horseman.types import WSGICallable, HTTPMethod
 from horseman.exceptions import HTTPError
-from knappe.components.meta import Mapping
+from knappe.components import Mapping
 from knappe.views import APIView
 from knappe.meta import Route, MatchedRoute
 from plum import dispatch

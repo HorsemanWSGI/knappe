@@ -100,11 +100,9 @@ class DecoratedResponse(Response):
         self.headers['Content-Type'] = ctype
 
     def render(self):
-        if self.layout is not None \
-           and self.layout.accepts(self.content_type):
+        if self.layout is not None:
             return self.layout(
-                self.body, request=self.request, **self.namespace)
-
+                self.request, self.body, **self.namespace)
         return self.body
 
     def __iter__(self):

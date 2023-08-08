@@ -34,14 +34,21 @@ class Component(t.Generic[K, T]):
     def evaluate(self, *args, **kwargs) -> t.Optional[ConstraintsErrors]:
         return resolve_constraints(self.conditions, self, *args, **kwargs)
 
-    def __call__(self, *args, silence_errors=True, **kwargs):
+    def check(self, *args, **kwargs) -> bool:
+        if self.conditions:
+            if errors := self.evaluate(*args, **kwargs):
+                return False
+        return True
+
+    def ensure(self, *args, **kwargs):
+        if self.conditions:
+            if errors := self.evaluate(*args, **kwargs):
+                raise errors
+
+    def __call__(self, *args, **kwargs):
         if not isinstance(self.value, t.Callable):
             raise ValueError(f'{self.value} is not callable.')
-        if errors := self.evaluate(*args, **kwargs):
-            if not silence_errors:
-                raise errors
-        else:
-            return self.value(*args, **kwargs)
+        return self.value(*args, **kwargs)
 
     @classmethod
     def create(cls,
@@ -165,7 +172,11 @@ class NamedRegistry(Registry):
         return super().find_one(*args, name)
 
     def find_all(self, *args):
-        yield from super().find_all(*args, Lookup.ALL)
+        names = set()
+        for component in super().find_all(*args, Lookup.ALL):
+            if component.identifier not in names:
+                names.add(component.identifier)
+                yield component
 
     def register(self, discriminant: t.Iterable[t.Type], *args, name: str = None, **kwargs):
         if name is None:

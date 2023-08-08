@@ -19,11 +19,12 @@ def query_slot(econtext, name):
     context = econtext.get('context', object())
     try:
         manager = ui.slots.find_one(request, view, context, name=name)()
-        slots = ui.slots.find_all(manager, request, view, context)
-        return manager.render(list(slots), request, view, context)
     except LookupError:
         # No slot found. We don't render anything.
         return None
+
+    slots = ui.slots.find_all(manager, request, view, context)
+    return manager(request, view, context, list(slots))
 
 
 def SlotExpr(name):

@@ -1,7 +1,7 @@
 import typing as t
 from dataclasses import dataclass
 from horseman.types import WSGICallable, HTTPMethod, Environ
-from knappe.components.meta import Component
+from knappe.components import Component
 
 
 @dataclass
