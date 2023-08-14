@@ -48,11 +48,9 @@ class Authenticator(t.Generic[RqT, Credentials], abc.ABC):
 
 
 class WSGISessionAuthenticator(
-        Authenticator[WSGIRequest, t.Union[t.Mapping, str, bytes]]):
+        Authenticator[WSGIRequest, t.Mapping | str | bytes]):
 
-    sources: t.Iterable[
-        Source[WSGIRequest, t.Union[t.Mapping, str, bytes]]
-    ]
+    sources: t.Iterable[Source[WSGIRequest, t.Mapping | str | bytes]]
 
     def __init__(self, sources,
                  context_key: str = 'user',

@@ -1,49 +1,33 @@
-import inspect
 import typing as t
-from abc import ABCMeta
-from horseman.types import HTTPMethod, HTTPMethods
-from knappe.datastructures import EndpointDefinition
+from dataclasses import dataclass
+from horseman.types import WSGICallable, HTTPMethod, Environ
+from knappe.components import Component
 
 
-METHODS = frozenset(t.get_args(HTTPMethod))
+@dataclass
+class Route(Component[str, WSGICallable]):
+
+    method: HTTPMethod = 'GET'
+
+    @property
+    def path(self) -> str:
+        return self.identifier
+
+    def __call__(self, request: Environ, **kwargs):
+        if self.conditions:
+            if errors := self.evaluate(request, **kwargs):
+                raise errors
+        return self.value(request, **kwargs)
 
 
-class HTTPEndpointMeta(ABCMeta):
+class MatchedRoute(t.NamedTuple):
+    path: str
+    route: Route
+    method: HTTPMethod
+    params: t.Mapping[str, t.Any]
 
-    def as_endpoint(self,
-                    methods: t.Optional[HTTPMethods] = None,
-                    metadata: t.Optional[t.Mapping[str, t.Any]] = None,
-                    **kwargs) -> t.Mapping[HTTPMethod, EndpointDefinition]:
+    def __call__(self, request: Environ):
+        return self.route(request, **self.params)
 
-        if methods is None:
-            methods = ('GET',)
-
-        inst = self()
-        return {
-            method: EndpointDefinition(handler=inst, metadata=metadata)
-            for method in methods
-        }
-
-
-class HTTPMethodEndpointMeta(HTTPEndpointMeta):
-
-    def as_endpoint(self,
-                    methods: t.Optional[HTTPMethods] = None,
-                    metadata: t.Optional[t.Mapping[str, t.Any]] = None,
-                    **kwargs) -> t.Mapping[HTTPMethod, EndpointDefinition]:
-
-        extract = methods is not None and methods or METHODS
-        inst = self()
-        available = {
-            verb.upper(): EndpointDefinition(
-                handler=handler, metadata=metadata
-            ) for verb, handler in inspect.getmembers(
-                inst, predicate=(lambda x: inspect.ismethod(x)))
-            if verb.upper() in extract
-        }
-        if methods is not None:
-            if unknown := (set(methods) - set(available.keys())):
-                raise ValueError(
-                    f"Missing HTTP method(s): {', '.join(unknown)}")
-
-        return available
+    def __hash__(self):
+        return hash((self.path, self.method, self.params))

@@ -1,10 +1,11 @@
 import typing as t
 from abc import ABC
+from uuid import UUID
 from horseman.types import HTTPMethod, HTTPCode, Environ, WSGICallable
 
 
 HTTPMethods = t.Iterable[HTTPMethod]
-UserId = t.Union[str, int]
+UserId = str | int | bytes | UUID
 
 
 class User(ABC):

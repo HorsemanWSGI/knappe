@@ -1,19 +1,23 @@
 import enum
-import typing as t
 import logging
-import types
-import inspect
-from functools import cached_property
+import typing as t
 from collections import namedtuple, defaultdict
-from knappe.blueprint import Blueprint, apply_blueprint
+from functools import cached_property
+from knappe.components.meta import Components
 from knappe.types import Application
 
 
 A = t.TypeVar('A', bound=Application)
 Logger = logging.getLogger(__name__)
-Registry = t.TypeVar('Registry')
-Blueprints = t.Mapping[str, t.Union[Blueprint, t.Tuple[Blueprint]]]
+Component = Components | t.Mapping | t.Set
 Hook = t.Callable[['Plugin', A], None]
+
+
+class event(enum.Enum):
+    before_install = 'before_install'
+    before_uninstall = 'before_uninstall'
+    after_install = 'after_install'
+    after_uninstall = 'after_uninstall'
 
 
 def plugin_topology(plugin):
@@ -35,29 +39,19 @@ def plugin_topology(plugin):
     del seen
 
 
-class event(enum.Enum):
-    before_install = 'before_install'
-    before_uninstall =  'before_uninstall'
-    after_install = 'after_install'
-    after_uninstall = 'after_uninstall'
-
-
 class Plugin(t.Generic[A]):
-
-    __slots__ = (
-        'name', 'dependencies', 'blueprints', '_hooks', '__lineage__')
 
     name: str
     dependencies: t.Iterable[str]
-    blueprints: t.Optional[t.NamedTuple]
+    components: t.Optional[t.Mapping[str, Components]]
     _hooks: t.Dict[event, Hook]
     __lineage__: t.Sequence['Plugin']
 
     def __init__(
             self,
             name: str,
-            blueprints: t.Optional[Blueprints] = None,
-            dependencies: t.Optional[t.Iterable[str]] = None):
+            components: t.Optional[t.Mapping[str, Components]] = None,
+            dependencies: t.Optional[t.Iterable['Plugin']] = None):
 
         self.name = name
         if dependencies is None:
@@ -65,11 +59,11 @@ class Plugin(t.Generic[A]):
         else:
             self.dependencies = tuple(dependencies)
         self._hooks = defaultdict(list)
-        if blueprints:
-            self.blueprints = namedtuple(
-                'Blueprints', blueprints.keys())(*blueprints.values())
+        if components:
+            self.components = namedtuple(
+                'PluginComponents', components.keys())(*components.values())
         else:
-            self.blueprints = None
+            self.components = None
         self.__lineage__ = tuple(plugin_topology(self))
 
     def __repr__(self):
@@ -87,10 +81,20 @@ class Plugin(t.Generic[A]):
             for hook in self._hooks[ev]:
                 hook(self, app)
 
-    def uninstall(self, app: A) -> A:
-        raise NotImplementedError('Uninstall is not implemented.')
+    def apply(self, app: A):
+        if self.components:
+            for name, component in self.components._asdict().items():
+                trail = name.split('.')
+                attr = trail[-1]
+                node = app
+                for stub in trail[:-1]:
+                    node = getattr(node, stub)
+                if not hasattr(node, attr):
+                    raise LookupError(
+                        f"{app!r} has no component {attr!r}.")
+                setattr(node, attr, getattr(node, attr) | component)
 
-    def install(self, app: A) -> A:
+    def install(self, app: A):
         installed = getattr(app, '__installed_plugins__', None)
         if installed is None:
             installed = app.__installed_plugins__ = set()
@@ -99,25 +103,15 @@ class Plugin(t.Generic[A]):
                 'An error occured while bootstrapping the '
                 f'plugins base on {app}.'
             )
-
         elif self.name in installed:
             Logger.debug(f'{self.name!r} already installed: skip.')
             return
 
-        for dep in self.dependencies:
-            dep.install(app)
+        for dep in self.__lineage__:
+            dep.apply(app)
         try:
             self.notify(event.before_install, app)
-            if self.blueprints:
-                for name, blueprints in self.blueprints._asdict().items():
-                    if isinstance(blueprints, Blueprint):
-                        blueprints = [blueprints]
-                    target = getattr(app, name, None)
-                    if target is None:
-                        raise LookupError(
-                            f'Unknown attribute {name} on {app}.')
-                    for blueprint in blueprints:
-                        apply_blueprint(blueprint, target)
+            self.apply(app)
         except Exception as exc:
             Logger.error(
                 f"An error occured while installing plugin {self.name}.",
@@ -129,3 +123,6 @@ class Plugin(t.Generic[A]):
             self.notify(event.after_install, app)
             Logger.info(f"Plugin {self.name} installed with success.")
         return app
+
+    def uninstall(self, app: A) -> A:
+        raise NotImplementedError('Uninstall is not implemented.')

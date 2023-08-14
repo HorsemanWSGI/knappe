@@ -1,9 +1,11 @@
+import bisect
 import typing as t
 from collections.abc import Hashable
 
 
 C = t.TypeVar('C', bound=Hashable)
 T = t.TypeVar('T', covariant=True)
+S = t.TypeVar('S')
 
 
 class TypeMapping(t.Generic[T, C], t.Dict[t.Type[T], t.List[C]]):
@@ -91,3 +93,38 @@ class ComponentsTopology(t.Generic[C], t.Collection[C]):
 
     def __iter__(self) -> t.Iterator[C]:
         return iter(self.sorted)
+
+
+class PriorityChain(t.Generic[S]):
+
+    __slots__ = ('_chain',)
+
+    _chain: t.List[S]
+
+    def __init__(self, *items: t.Iterable[S]):
+        self._chain = list(items)
+
+    def __iter__(self):
+        return iter(self._chain)
+
+    def __or__(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError(
+                f"Unsupported merge between {self.__class__!r} "
+                f"and {other.__class__!r}"
+            )
+        return self.__class__(*[*self._chain, *other._chain])
+
+    def add(self, sortable: S):
+        if not self._chain:
+            self._chain = [sortable]
+        else:
+            bisect.insort(self._chain, sortable)
+
+    def remove(self, sortable: S):
+        if sortable not in self._chain:
+            raise KeyError('{sortable!r} does not exist.')
+        self._chain.remove(sortable)
+
+    def clear(self):
+        self._chain.clear()

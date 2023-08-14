@@ -2,10 +2,9 @@ import pytest
 from unittest.mock import Mock
 from frozendict import frozendict
 from knappe import routing
-from knappe.blueprint import Blueprint
-from knappe.datastructures import EndpointDefinition
 from knappe.plugins import Plugin, event
 from knappe.response import Response
+from knappe.meta import Route
 
 
 class Application:
@@ -13,6 +12,7 @@ class Application:
 
 
 class RoutingApplication:
+
     def __init__(self):
         self.router = routing.Router()
 
@@ -20,7 +20,7 @@ class RoutingApplication:
 def test_empty_plugin():
     plugin = Plugin('my empty plugin')
     assert plugin.dependencies == ()
-    assert plugin.blueprints is None
+    assert plugin.components is None
 
 
 def test_empty_lineage():
@@ -77,8 +77,8 @@ def test_plugin_install_with_hooks():
 
 
 def test_plugin_with_blueprint_no_registry():
-    router = Blueprint(routing.Router)
-    plugin = Plugin('route', blueprints={"router": router})
+    router = routing.Router()
+    plugin = Plugin('route', components={"router": router})
     app = Application()
 
     with pytest.raises(LookupError):
@@ -86,8 +86,8 @@ def test_plugin_with_blueprint_no_registry():
 
 
 def test_plugin_with_singular_blueprint():
-    router = Blueprint(routing.Router)
-    plugin = Plugin('route', blueprints={"router": router})
+    router = routing.Router()
+    plugin = Plugin('route', components={"router": router})
     app = RoutingApplication()
 
     @router.register('/')
@@ -96,18 +96,17 @@ def test_plugin_with_singular_blueprint():
 
     plugin.install(app)
     assert dict(app.router) == {
-        '/': {
-            'GET': EndpointDefinition(
-                handler=handler,
-                metadata=frozendict()
-            )
-        }
+        ('/', 'GET'): Route.create(
+            identifier="/",
+            value=handler,
+            method='GET'
+        )
     }
 
 
-def test_plugin_with_singular_blueprint_on_func():
-    router = Blueprint(routing.Router)
-    plugin = Plugin('route', blueprints={"router": router})
+def test_plugin_on_func():
+    router = routing.Router()
+    plugin = Plugin('route', components={"router": router})
 
     def func():
         """This is a non-sense example.
@@ -121,41 +120,9 @@ def test_plugin_with_singular_blueprint_on_func():
 
     plugin.install(func)
     assert dict(func.router) == {
-        '/': {
-            'GET': EndpointDefinition(
-                handler=handler,
-                metadata=frozendict()
-            )
-        }
-    }
-
-
-def test_plugin_with_plural_blueprints():
-    browser = Blueprint(routing.Router)
-    api = Blueprint(routing.Router)
-    plugin = Plugin('route', blueprints={"router": [browser, api]})
-    app = RoutingApplication()
-
-    @browser.register('/')
-    def view(request):
-        return Response(200, body='ok')
-
-    @api.register('/api')
-    def handler(request):
-        return Response(200, body='ok')
-
-    plugin.install(app)
-    assert dict(app.router) == {
-        '/': {
-            'GET': EndpointDefinition(
-                handler=view,
-                metadata=frozendict()
-            )
-        },
-        '/api': {
-            'GET': EndpointDefinition(
-                handler=handler,
-                metadata=frozendict()
-            )
-        }
+        ('/', 'GET'): Route.create(
+            identifier="/",
+            value=handler,
+            method='GET'
+        )
     }

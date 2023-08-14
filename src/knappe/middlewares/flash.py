@@ -40,13 +40,17 @@ def flash(handler: Handler[WSGIRequest, Response],
           ) -> Handler[WSGIRequest, Response]:
 
     def request_flasher(request: WSGIRequest) -> Response:
-        if (session := request.context.get('http_session')) is not None:
-            request.context['flash'] = SessionMessages(session)
-        else:
+        if 'http_session' not in request.context:
             logging.warning(
                 'FlashMessages can only be used if a session'
                 'is already present'
             )
-        return handler(request)
+            return handler(request)
+
+        session = request.context['http_session']
+        request.context['flash'] = SessionMessages(session)
+        response = handler(request)
+        del request.context['flash']
+        return response
 
     return request_flasher
