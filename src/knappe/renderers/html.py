@@ -74,12 +74,16 @@ class HTMLWrapper(wrapt.FunctionWrapper):
 
     def without_layout(self, request):
         result = self.__wrapped__(request)
+        if isinstance(result, Response):
+            return result
         rendered = self.render(
             request, result, layout_name=None)
         return self.response_class.html(body=rendered)
 
     def with_layout(self, wrapped, instance, args, kwargs):
         result = wrapped(*args, **kwargs)
+        if isinstance(result, Response):
+            return result
         request = args[0]
         rendered = self.render(
             request, result, layout_name=self.layout_name)

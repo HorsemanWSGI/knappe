@@ -3,43 +3,45 @@ import colander
 import deform
 import http_session_file
 from typing import Any
-from knappe.components import Registry, NamedRegistry
 from horseman.mapping import RootNode
+from knappe.auth import WSGISessionAuthenticator
+from knappe.components import Registry, NamedRegistry
+from knappe.decorators import context
+from knappe.middlewares.auth import Authentication
+from knappe.middlewares.flash import flash
+from knappe.middlewares.session import HTTPSession
 from knappe.pipeline import Pipeline
+from knappe.renderers import html, template
+from knappe.request import WSGIRequest, RoutingRequest
 from knappe.response import Response
 from knappe.routing import Router
-from knappe.decorators import context
-from knappe.renderers import html, template
+from knappe.testing import DictSource
+from knappe.types import User
 from knappe.ui import UI
-from knappe.views import APIView
+from knappe.ui.layout import Layout
 from knappe.ui.slot import SlotExpr
 from knappe.ui.templates import Templates, EXPRESSION_TYPES
+from knappe.views import APIView
 from prejudice.errors import ConstraintError
-from knappe.ui.layout import Layout
-from knappe.request import WSGIRequest, RoutingRequest
-from knappe.middlewares.session import HTTPSession
-from knappe.middlewares.auth import Authentication
-from knappe.auth import WSGISessionAuthenticator
-from knappe.testing import DictSource
-from knappe.middlewares.flash import flash
 
 
+#Any = object
 EXPRESSION_TYPES['slot'] = SlotExpr
-
-
-class Actions(NamedRegistry):
-    pass
 
 
 class Events(Registry):
 
-    def match_all(self, *args):
-        found = list(super().match_all(*args))
+    def find_all(self, *args):
+        found = list(super().find_all(*args))
 
         def sorting_key(handler):
             return handler.identifier, handler.metadata.get('order', 1000)
 
         return sorted(found, key=sorting_key)
+
+    def notify(self, *args):
+        for handler in self.find_all(*args):
+            handler(*args)
 
 
 class Application(RootNode):
@@ -49,6 +51,7 @@ class Application(RootNode):
         self.ui = UI()
         self.actions = NamedRegistry()
         self.pipeline = Pipeline(middlewares)
+        self.subscribers = Events()
 
     def resolve(self, path_info, environ):
         request = RoutingRequest(
@@ -180,6 +183,11 @@ def composed(request):
     }
 
 
+@app.subscribers.register((RoutingRequest, User))
+def logged_in(request, user):
+    print(request, user)
+
+
 class LoginSchema(colander.Schema):
 
     username = colander.SchemaNode(
@@ -229,6 +237,7 @@ class Login(APIView):
             request.context['authentication'].remember(
                 request, user
             )
+            app.subscribers.notify(request, user)
             request.context['flash'].add('Successfully logged in.')
             return Response.redirect("/")
 
