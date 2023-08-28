@@ -192,121 +192,31 @@ class NamedRegistry(Registry):
         return register_component
 
 
-# import typing as t
-# from zope.interface import Interface
-# from zope.interface import providedBy, implementedBy
-# from zope.interface.interfaces import ISpecification
-# from zope.interface.adapter import AdapterRegistry
+def one_of(items: t.Iterable[Component], *classifiers: str
+           ) -> t.Iterator[Component]:
+    if not classifiers:
+        raise KeyError('`one_of` takes at least one classifier.')
+    classifiers = set(classifiers)
+    for item in items:
+        if item.classifiers & classifiers:
+            yield item
 
 
-# def interfaces(requirements):
-#     ifaces = []
-#     for requirement in requirements:
-#         if ISpecification.providedBy(requirement):
-#             ifaces.append(requirement)
-#             continue
-#         if isinstance(requirement, type):
-#             ifaces.append(implementedBy(requirement))
-#         else:
-#             raise TypeError("Sources must either be "
-#                             "an interface or a class.")
-#     return ifaces
+def exact(items: t.Iterable[Component], *classifiers: str
+          ) -> t.Iterator[Component]:
+    if not classifiers:
+        raise KeyError('`exact` takes at least one classifier.')
+    classifiers = set(classifiers)
+    for item in items:
+        if classifiers == item.classifiers:
+            yield item
 
 
-# class ComponentRegistry:
-
-#     def __init__(self):
-#         self.registry = AdapterRegistry()
-
-#     def register(self, sources, target, name, component):
-#         required = interfaces(sources)
-#         self.registry.register(required, target, name, component)
-
-#     def subscribe(self, sources, target, component):
-#         required = interfaces(sources)
-#         self.registry.subscribe(required, target, component)
-
-#     def lookup(self, obs, target, name):
-#         return self.registry.lookup(map(providedBy, obs), target, name)
-
-#     def cls_lookup(self, classes, target, name):
-#         return self.registry.lookup(
-#             map(implementedBy, classes), target, name
-#         )
-
-#     def lookup_all(self, obs, target):
-#         return iter(self.registry.lookupAll(
-#             list(map(providedBy, obs)), target))
-
-#     def subscriptions(self, obs, target):
-#         return self.registry.subscriptions(
-#             map(providedBy, obs), target
-#         )
-
-#     def predicates(self, classes, target):
-#         return self.registry.subscriptions(
-#             map(implementedBy, classes), target
-#         )
-
-
-# class Registry:
-#     _registry: ComponentRegistry
-#     factory: t.ClassVar[t.Type[C]] = Component
-
-#     class resolve_to(Interface):
-#         pass
-
-#     def __init__(self, *args):
-#         self._registry = ComponentRegistry()
-#         super().__init__(*args)
-
-#     def register(self, discriminant: t.Iterable[t.Type], name, *args, **kwargs):
-#         def register_component(value):
-#             from uuid import uuid4
-
-#             item = self.factory.create(
-#                 value, name, *args, **kwargs)
-
-#             self._registry.subscribe(
-#                 discriminant, self.resolve_to, item
-#             )
-#             return value
-#         return register_component
-
-#     def find_one(self, *args, name=''):
-#         raise NotImplementedError()
-
-#     def find_all(self, *args):
-#         yield from self._registry.subscriptions(args, self.resolve_to)
-
-
-# class NamedRegistry:
-#     _registry: ComponentRegistry
-#     factory: t.ClassVar[t.Type[C]] = Component
-
-#     class resolve_to(Interface):
-#         pass
-
-#     def __init__(self, *args):
-#         self._registry = ComponentRegistry()
-#         super().__init__(*args)
-
-#     def register(self, discriminant: t.Iterable[t.Type], *args, name='', **kwargs):
-#         def register_component(value):
-#             from uuid import uuid4
-
-#             item = self.factory.create(
-#                 value, name, *args, **kwargs)
-
-#             self._registry.register(
-#                 discriminant, self.resolve_to, item.identifier, item
-#             )
-#             return value
-#         return register_component
-
-#     def find_one(self, *args, name=''):
-#         return self._registry.lookup(args, self.resolve_to, name)
-
-#     def find_all(self, *args):
-#         for name, item in self._registry.lookup_all(args, self.resolve_to):
-#             yield item
+def partial(items: t.Iterable[Component], *classifiers: str
+            ) -> t.Iterator[Component]:
+    if not classifiers:
+        raise KeyError('`partial` takes at least one classifier.')
+    classifiers = set(classifiers)
+    for item in items:
+        if item.classifiers >= classifiers:
+            yield item

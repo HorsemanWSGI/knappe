@@ -99,7 +99,7 @@ class Plugin(t.Generic[A]):
             installed = app.__installed_plugins__ = set()
         elif not isinstance(installed, set):
             raise TypeError(
-                'An error occured while bootstrapping the '
+                'An error occurred while bootstrapping the '
                 f'plugins base on {app}.'
             )
         elif self.name in installed:
@@ -113,7 +113,7 @@ class Plugin(t.Generic[A]):
             self.apply(app)
         except Exception as exc:
             Logger.error(
-                f"An error occured while installing plugin {self.name}.",
+                f"An error occurred while installing plugin {self.name}.",
                 exc_info=True
             )
             raise
