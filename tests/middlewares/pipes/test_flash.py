@@ -16,8 +16,7 @@ class Application(RootNode):
 
     def resolve(self, path_info, environ):
         request = RoutingRequest(environ, app=self)
-        request.endpoint = self.router.match(
-            path_info, request.environ.method)
+        request.endpoint = self.router.match(path_info, request.method)
         wrapped = self.pipeline(request.endpoint)
         return wrapped(request)
 

@@ -2,8 +2,7 @@ import typing as t
 import orjson
 from http import HTTPStatus
 from horseman.types import HTTPCode
-from horseman.response import BODYLESS, Headers, Response as BaseResponse
-from knappe.request import WSGIRequest
+from horseman.response import Headers, Response as BaseResponse
 
 
 REDIRECT = frozenset((

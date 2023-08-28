@@ -18,7 +18,6 @@ from knappe.routing import Router
 from knappe.testing import DictSource
 from knappe.types import User
 from knappe.ui import UI
-from knappe.ui.layout import Layout
 from knappe.ui.slot import SlotExpr
 from knappe.ui.templates import Templates, EXPRESSION_TYPES
 from knappe.views import APIView

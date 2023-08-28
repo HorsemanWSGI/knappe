@@ -2,8 +2,7 @@ import enum
 import logging
 import typing as t
 from collections import namedtuple, defaultdict
-from functools import cached_property
-from knappe.components.meta import Components
+from knappe.components import Components
 from knappe.types import Application
 
 
@@ -42,9 +41,9 @@ def plugin_topology(plugin):
 class Plugin(t.Generic[A]):
 
     name: str
-    dependencies: t.Iterable[str]
-    components: t.Optional[t.Mapping[str, Components]]
-    _hooks: t.Dict[event, Hook]
+    dependencies: t.Iterable['Plugin']
+    components: t.Optional[t.NamedTuple]
+    _hooks: t.Dict[event, t.List[Hook]]
     __lineage__: t.Sequence['Plugin']
 
     def __init__(
