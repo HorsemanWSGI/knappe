@@ -27,5 +27,6 @@ Application = WSGICallable
 
 __all__ = [
     'HTTPMethod', 'HTTPCode', 'Environ', 'WSGICallable',  # Horseman
-    'User', 'Request', 'Config', 'Handler', 'Middleware'
+    'User', 'Request', 'Config', 'Handler', 'Middleware',
+    'RsT', 'RqT', 'UserId', 'HTTPMethods'
 ]
