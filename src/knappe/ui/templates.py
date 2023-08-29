@@ -3,6 +3,7 @@ import typing as t
 from pathlib import Path
 from types import MappingProxyType
 from chameleon.zpt import template
+from pkg_resources import resource_filename
 
 
 EXPRESSION_TYPES: t.Mapping[str, t.Callable[[str], t.Callable]] = {}
@@ -27,28 +28,31 @@ class Templates(t.Mapping[str, template.PageTemplate]):
     }
     expression_types = MappingProxyType(EXPRESSION_TYPES)
 
-    def __init__(self, path: t.Optional[Path | str] = None):
+    def __init__(self):
         self.registry = {}
         self.cache = {}
 
-        if path:
-            path = Path(path)
+    def register_package_resources(self, pkgpath: str):
+        pkg, resource_name = path.split(":")
+        path = resource_filename(pkg, resource_name)
+        self.register_path(path)
+        return self  # for chaining
 
-            if not path.is_absolute():
-                callerframerecord = inspect.stack()[1]
-                frame = callerframerecord[0]
-                info = inspect.getframeinfo(frame)
-                path = Path(info.filename).parent / path
+    def register_path(self, path: Path | str):
+        path = Path(path)  # idempotent
+        if not path.is_absolute():
+            callerframerecord = inspect.stack()[1]
+            frame = callerframerecord[0]
+            info = inspect.getframeinfo(frame)
+            path = Path(info.filename).parent / path
 
-            self.register(path)
-
-    def register(self, path: Path | str):
         for tpl in scan_templates(path, set(self.extensions.keys())):
             name = str(tpl.relative_to(path).with_suffix('').as_posix())
             if conflict := self.registry.get(name):
                 raise KeyError(
                     f'{name!r} exists: {tpl!r} overrides {conflict!r}.')
             self.registry[name] = tpl
+        return self  # for chaining
 
     def __iter__(self):
         return iter(self.registry)

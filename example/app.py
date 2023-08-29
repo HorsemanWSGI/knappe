@@ -24,7 +24,6 @@ from knappe.views import APIView
 from prejudice.errors import ConstraintError
 
 
-#Any = object
 EXPRESSION_TYPES['slot'] = SlotExpr
 
 
@@ -89,7 +88,7 @@ app = Application((
     flash
 ))
 
-app.ui.templates |= Templates('./templates')
+app.ui.templates |= Templates().register_path('./templates')
 
 
 def not_anonymous(action, request, view, context):
