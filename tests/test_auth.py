@@ -1,6 +1,6 @@
 from knappe.request import WSGIRequest
 from knappe.auth import WSGISessionAuthenticator
-from knappe.testing import DictSource
+from knappe.fixtures.auth import DictSource
 
 
 def test_source(environ):

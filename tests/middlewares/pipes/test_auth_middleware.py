@@ -1,6 +1,6 @@
 from knappe.response import Response
 from knappe.request import WSGIRequest
-from knappe.testing import DictSource, UserObject
+from knappe.fixtures.auth import DictSource, UserObject
 from knappe.auth import WSGISessionAuthenticator
 from knappe.middlewares.session import HTTPSession
 from knappe.middlewares.auth import (

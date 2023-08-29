@@ -28,12 +28,13 @@ class Templates(t.Mapping[str, template.PageTemplate]):
     }
     expression_types = MappingProxyType(EXPRESSION_TYPES)
 
-    def __init__(self):
+    def __init__(self, prefix: str | None = None):
         self.registry = {}
         self.cache = {}
+        self.prefix = prefix
 
     def register_package_resources(self, pkgpath: str):
-        pkg, resource_name = path.split(":")
+        pkg, resource_name = pkgpath.split(":", 1)
         path = resource_filename(pkg, resource_name)
         self.register_path(path)
         return self  # for chaining
@@ -51,7 +52,7 @@ class Templates(t.Mapping[str, template.PageTemplate]):
             if conflict := self.registry.get(name):
                 raise KeyError(
                     f'{name!r} exists: {tpl!r} overrides {conflict!r}.')
-            self.registry[name] = tpl
+            self.registry[f'{self.prefix or ""}{name}'] = tpl
         return self  # for chaining
 
     def __iter__(self):

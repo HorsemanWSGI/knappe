@@ -12,10 +12,10 @@ from knappe.middlewares.flash import flash
 from knappe.middlewares.session import HTTPSession
 from knappe.pipeline import Pipeline
 from knappe.renderers import html, template
-from knappe.request import WSGIRequest, RoutingRequest
+from knappe.request import RoutingRequest
 from knappe.response import Response
 from knappe.routing import Router
-from knappe.testing import DictSource
+from knappe.fixtures.auth import DictSource
 from knappe.types import User
 from knappe.ui import UI
 from knappe.ui.slot import SlotExpr
