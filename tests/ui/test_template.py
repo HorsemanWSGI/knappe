@@ -1,4 +1,4 @@
-from knappe.ui.templates import Templates
+from knappe.ui.templates import Templates, TemplatesChain
 
 
 def test_package_loading():
@@ -25,3 +25,18 @@ def test_prefix():
 
     templates2 = Templates().register_package_resources('knappe.fixtures:templates')
     assert set(templates2.registry.keys()) == {'example', 'index'}
+
+def test_template_chain():
+    tpl1 = Templates().register_path('./templates')
+    tpl2 = Templates().register_package_resources('knappe.fixtures:templates')
+    chain = TemplatesChain()
+    chain.register(tpl1)
+    chain.register(tpl2)
+    assert list(chain) == [(0, tpl1), (0, tpl2)]
+    assert chain.get('index') is tpl1['index']
+
+    chain = TemplatesChain()
+    chain.register(tpl1, 2)
+    chain.register(tpl2, 1)
+    assert list(chain) == [(1, tpl2), (2, tpl1)]
+    assert chain.get('index') is tpl2['index']

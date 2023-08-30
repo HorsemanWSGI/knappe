@@ -4,12 +4,13 @@ from pathlib import Path
 from types import MappingProxyType
 from chameleon.zpt import template
 from pkg_resources import resource_filename
+from knappe.collections import PriorityChain
 
 
 EXPRESSION_TYPES: t.Mapping[str, t.Callable[[str], t.Callable]] = {}
 
 
-def scan_templates(path: Path, allowed_suffixes={".pt", ".cpt"}):
+def scan_templates(path: Path, allowed_suffixes=(".pt", ".cpt")):
     for child in path.iterdir():
         if child.is_dir():
             yield from scan_templates(child, allowed_suffixes)
@@ -47,7 +48,7 @@ class Templates(t.Mapping[str, template.PageTemplate]):
             info = inspect.getframeinfo(frame)
             path = Path(info.filename).parent / path
 
-        for tpl in scan_templates(path, set(self.extensions.keys())):
+        for tpl in scan_templates(path, tuple(self.extensions.keys())):
             name = str(tpl.relative_to(path).with_suffix('').as_posix())
             if conflict := self.registry.get(name):
                 raise KeyError(
@@ -60,6 +61,9 @@ class Templates(t.Mapping[str, template.PageTemplate]):
 
     def __len__(self):
         return len(self.registry)
+
+    def __lt__(self, other: 'Templates'):
+        return tuple(self.keys()) < tuple(self.keys())
 
     def macro(self, name: str, macroname: str):
         return self[name].macros[macroname]
@@ -74,7 +78,7 @@ class Templates(t.Mapping[str, template.PageTemplate]):
             tpl.expression_types |= self.expression_types
             return tpl
 
-        raise ValueError(f"Template not found: {name}.")
+        raise KeyError(f"Template not found: {name}.")
 
     def __or__(self, reg: 'Templates'):
         if not isinstance(reg, Templates):
@@ -85,3 +89,17 @@ class Templates(t.Mapping[str, template.PageTemplate]):
         # ensure cache consistency. Merged cache should have precedence on merged overriding templates
         templates.cache = {p: t for p, t in self.cache.items() if p not in reg.registry} | reg.cache
         return templates
+
+
+class TemplatesChain(PriorityChain[t.Tuple[int, Templates]]):
+
+    def register(self, registry: Templates, order: int = 0):
+        return self.add((order, registry))
+    def get(self, name):
+        for order, reg in self._chain:
+            try:
+               tpl = reg[name]
+               return tpl
+            except KeyError:
+                continue
+        return None

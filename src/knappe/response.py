@@ -1,8 +1,10 @@
 import typing as t
 import orjson
+from pathlib import Path
 from http import HTTPStatus
 from horseman.types import HTTPCode
 from horseman.response import Headers, Response as BaseResponse
+from .utils import file_iterator
 
 
 REDIRECT = frozenset((
@@ -41,6 +43,10 @@ class Response(BaseResponse):
             headers["Content-Disposition"] = (
                 f"attachment;filename={filename}")
         return cls(200, body, headers)
+
+    @classmethod
+    def from_file_path(cls, path: Path):
+        return cls.from_file_iterator(file_iterator(path))
 
     @classmethod
     def to_json(cls, code: HTTPCode = 200, body: t.Optional[t.Any] = None,
