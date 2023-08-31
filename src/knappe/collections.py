@@ -4,27 +4,7 @@ from collections.abc import Hashable
 
 
 C = t.TypeVar('C', bound=Hashable)
-T = t.TypeVar('T', covariant=True)
 S = t.TypeVar('S')
-
-
-class TypeMapping(t.Generic[T, C], t.Dict[t.Type[T], t.List[C]]):
-
-    __slots__ = ()
-
-    def add(self, cls: t.Type[T], component: C):
-        components = self.setdefault(cls, [])
-        components.append(component)
-
-    @staticmethod
-    def lineage(cls: t.Type[T]):
-        yield from cls.__mro__
-
-    def lookup(self, cls: t.Type[T]) -> t.Iterator[C]:
-        for parent in self.lineage(cls):
-            if parent in self:
-                yield from self[parent]
-
 
 Marker = t.NewType('Marker', str)
 Node = t.Union[C, Marker]
