@@ -1,2 +1,2 @@
--e git+ssh://git@github.com/HorsemanWSGI/horseman.git#egg=horseman
+-e git+https://git@github.com/HorsemanWSGI/horseman.git#egg=horseman
 -e .[test]
