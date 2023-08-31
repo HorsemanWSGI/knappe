@@ -1,5 +1,6 @@
 import wrapt
 import typing as t
+import functools
 from knappe.response import Response
 
 
