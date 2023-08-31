@@ -14,7 +14,7 @@ class BoundHTMLWrapper(wrapt.BoundFunctionWrapper):
         super().bare(*args, **kwargs)
 
     def without_layout(self, request):
-        super().without_layout(*args, **kwargs)
+        super().without_layout(request)
 
     def __call__(self, *args, **kwargs):
         return super().__call__(*args, **kwargs)
