@@ -112,11 +112,24 @@ class Collection(t.Generic[C], Components[C], UserList[C]):
             )
         return self.__class__([*self, *other])
 
+    def __ior__(self, other):
+        for c in other:
+            self.add(c)
+        return self
+
 
 class Mapping(t.Generic[K, C], Components[C], UserDict[K, C]):
 
     def add(self, component: C):
         self[component.identifier] = component
+
+    def __or__(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError(
+                f"Unsupported merge between {self.__class__!r} "
+                f"and {other.__class__!r}"
+            )
+        return self.__class__(self.data | other.data)
 
 
 class Registry(t.Generic[C], Mapping[Signature, C]):

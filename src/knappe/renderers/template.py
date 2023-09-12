@@ -21,7 +21,8 @@ def template(
                 **result,
                 'ui': ui,
                 'macro': ui.macros.macro,
-                'view': instance or wrapped
+                'view': instance or wrapped,
+                'request': request
             }
         else:
             template = default_template

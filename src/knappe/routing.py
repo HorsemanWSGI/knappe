@@ -121,6 +121,11 @@ class Router(RouteStore):
         super().__setitem__(key, route)
         self.routes.add(route.path, **{route.method: route})
 
+    def __ior__(self, other):
+        for key, route in other.items():
+            self.routes.add(route.path, **{route.method: route})
+        return self
+
     def match(self,
               path: str,
               method: HTTPMethod) -> t.Optional[MatchedRoute]:

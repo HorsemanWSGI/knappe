@@ -39,7 +39,7 @@ class Transaction:
                 if txn.isDoomed():
                     txn.abort()
                 elif errors := resolve_constraints(
-                        *self.config.veto, request, response):
+                        self.config.veto, request, response):
                     raise errors
                 else:
                     txn.commit()

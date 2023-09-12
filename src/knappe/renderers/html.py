@@ -42,6 +42,7 @@ class HTMLWrapper(wrapt.FunctionWrapper):
         ui = request.context.get('ui')
         namespace = {
             'ui': ui,
+            'request': request,
             'macro': ui is not None and ui.macros.macro or None,
         }
 

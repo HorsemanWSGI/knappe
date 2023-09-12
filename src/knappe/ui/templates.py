@@ -90,6 +90,9 @@ class Templates(t.Mapping[str, template.PageTemplate]):
         templates.cache = {p: t for p, t in self.cache.items() if p not in reg.registry} | reg.cache
         return templates
 
+    def __ior__(self, reg: 'Templates'):
+        return self | reg
+
 
 class TemplatesChain(PriorityChain[t.Tuple[int, Templates]]):
 
