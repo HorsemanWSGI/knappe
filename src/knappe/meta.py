@@ -27,7 +27,7 @@ class MatchedRoute(t.NamedTuple):
     params: t.Mapping[str, t.Any]
 
     def __call__(self, request: Environ):
-        return self.route(request, **self.params)
+        return self.route(request)
 
     def __hash__(self):
         return hash((self.path, self.method, self.params))

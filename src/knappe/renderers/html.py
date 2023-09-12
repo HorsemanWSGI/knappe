@@ -65,7 +65,7 @@ class HTMLWrapper(wrapt.FunctionWrapper):
             if layout_name is not None:
                 layout = ui.layouts.find_one(
                     request, name=layout_name).value
-                rendered = layout(request, rendered, **namespace)
+                rendered = layout(request, rendered, namespace)
         return rendered
 
     def bare(self, request):
