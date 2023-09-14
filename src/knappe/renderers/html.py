@@ -44,6 +44,7 @@ class HTMLWrapper(wrapt.FunctionWrapper):
             'ui': ui,
             'request': request,
             'macro': ui is not None and ui.macros.macro or None,
+            'view': self.__wrapped__
         }
 
         if not self.template_name:

@@ -178,6 +178,11 @@ class Registry(t.Generic[C], Mapping[Signature, C]):
             )
         return self.__class__(self._ordered | other._ordered)
 
+    def __ior__(self, other):
+        for signature, component in other.items():
+            self[signature] = component
+        return self
+
 
 class NamedRegistry(Registry):
 

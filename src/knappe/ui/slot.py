@@ -1,4 +1,6 @@
 import ast
+import types
+import logging
 from horseman.types import Environ
 from typing import Callable, Any
 from chameleon.codegen import template
@@ -6,7 +8,7 @@ from chameleon.astutil import Symbol
 
 
 Slot = Callable[[Environ, str, Any], str]
-
+DEFAULT = object()
 
 def query_slot(econtext, name):
     """Compute the result of a slot expression
@@ -15,8 +17,14 @@ def query_slot(econtext, name):
     if ui is None:
         return None
     request = econtext.get('request')
-    view = econtext.get('view', object())
-    context = econtext.get('context', object())
+    view = econtext.get('view', DEFAULT)
+    if isinstance(view, types.FunctionType):
+        logging.warning(
+            f'View {view} is a function. We do not support functions '
+            'as discriminants as for now. Defaulting to `object()`'
+        )
+        view = DEFAULT
+    context = econtext.get('context', DEFAULT)
     try:
         manager = ui.slots.find_one(request, view, context, name=name)()
     except LookupError:

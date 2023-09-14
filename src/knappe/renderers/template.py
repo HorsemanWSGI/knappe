@@ -18,17 +18,17 @@ def template(
         if ui := request.context.get('ui'):
             template = ui.templates.get(template_name, default_template)
             namespace = {
-                **result,
                 'ui': ui,
                 'macro': ui.macros.macro,
                 'view': instance or wrapped,
-                'request': request
+                'request': request,
+                **result
             }
         else:
             template = default_template
             namespace = {
-                **result,
-                'view': instance or wrapped
+                'view': instance or wrapped,
+                **result
             }
         if template is None:
             raise NotImplementedError('No template.')
